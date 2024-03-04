@@ -88,10 +88,16 @@ class HumeDatasetTrain(Dataset):
 
     def process_audio(self, filename):
         audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.wav"
-        audio_data, _ = sf.read(audio_file_path)
-        processed_audio = self.processor(audio_data)
+        try:
+            audio_data, _ = sf.read(audio_file_path)
+            processed_audio = self.processor(audio_data)
+        except Exception as e:
+            print(f"Error processing audio file {audio_file_path}: {e}")
+            audio_data = np.zeros(128, dtype=np.float32)
+            processed_audio = self.processor(audio_data)
 
         return processed_audio
+
 
     def __len__(self):
         return len(self.label_file)
@@ -165,8 +171,13 @@ class HumeDatasetEval(Dataset):
 
     def process_audio(self, filename):
         audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.wav"
-        audio_data, _ = sf.read(audio_file_path)
-        processed_audio = self.processor(audio_data)
+        try:
+            audio_data, _ = sf.read(audio_file_path)
+            processed_audio = self.processor(audio_data)
+        except Exception as e:
+            print(f"Error processing audio file {audio_file_path}: {e}")
+            audio_data = np.zeros(128, dtype=np.float32)
+            processed_audio = self.processor(audio_data)
 
         return processed_audio
 
