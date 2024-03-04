@@ -22,13 +22,13 @@ class HumeDatasetTrain(Dataset):
     def __getitem__(self, index):
         row = self.label_file.iloc[index]
 
-        wav2vec2_file_path = f"{self.data_folder}/wav2vec2/{row['filename'].zfill(5)}.pkl"
+        wav2vec2_file_path = f"{self.data_folder}wav2vec2/{str(int(row['Filename'])).zfill(5)}.pkl"
         with open(wav2vec2_file_path, 'rb') as file:
-            wav2vec2 = pickle.load(file)
+            wav2vec2 = torch.mean(torch.tensor(pickle.load(file)), dim=0)
 
-        vit_file_path = f"{self.data_folder}/vit/{row['filename'].zfill(5)}.pkl"
+        vit_file_path = f"{self.data_folder}vit/{str(int(row['Filename'])).zfill(5)}.pkl"
         with open(vit_file_path, 'rb') as file:
-            vit = pickle.load(file)
+            vit = torch.mean(torch.tensor(pickle.load(file)), dim=0)
 
         # Extract the required labels and convert them to a tensor
         labels = torch.tensor(
@@ -53,13 +53,13 @@ class HumeDatasetEval(Dataset):
     def __getitem__(self, index):
         row = self.label_file.iloc[index]
 
-        wav2vec2_file_path = f"{self.data_folder}/wav2vec2/{row['filename'].zfill(5)}.pkl"
+        wav2vec2_file_path = f"{self.data_folder}wav2vec2/{str(int(row['Filename'])).zfill(5)}.pkl"
         with open(wav2vec2_file_path, 'rb') as file:
-            wav2vec2 = pickle.load(file)
+            wav2vec2 = torch.mean(torch.tensor(pickle.load(file)), dim=0)
 
-        vit_file_path = f"{self.data_folder}/vit/{row['filename'].zfill(5)}.pkl"
+        vit_file_path = f"{self.data_folder}vit/{str(int(row['Filename'])).zfill(5)}.pkl"
         with open(vit_file_path, 'rb') as file:
-            vit = pickle.load(file)
+            vit = torch.mean(torch.tensor(pickle.load(file)), dim=0)
 
         # Extract the required labels and convert them to a tensor
         labels = torch.tensor(

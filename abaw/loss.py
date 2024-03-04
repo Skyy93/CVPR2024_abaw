@@ -22,7 +22,7 @@ class CCC(nn.Module):
         self.loss_function = torch.nn.MSELoss()
 
     def forward(self, features, labels):
-        return 2 * torch.cov(features, labels) / (
+        return 2 * torch.cov(torch.cat([features, labels], dim=1)) / (
                     features.var() + labels.var() + (features.mean() - labels.mean()) ** 2)
 
 

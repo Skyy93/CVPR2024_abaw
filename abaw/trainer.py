@@ -26,21 +26,20 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
         bar = dataloader
     
     # for loop over one epoch
-    for query, reference, ids in bar:
+    for wav2vec2, vit, label in bar:
         
         if scaler:
             with autocast():
             
                 # data (batches) to device   
-                query = query.to(train_config.device)
-                reference = reference.to(train_config.device)
+                wav2vec2 = wav2vec2.to(train_config.device)
+                vit = vit.to(train_config.device)
+                label = label.to(train_config.device)
             
                 # Forward pass
-                features1, features2 = model(query, reference)
-                if torch.cuda.device_count() > 1 and len(train_config.gpu_ids) > 1: 
-                    loss = loss_function(features1, features2, model.module.logit_scale.exp())
-                else:
-                    loss = loss_function(features1, features2, model.logit_scale.exp()) 
+                features = model(wav2vec2, vit)
+                loss = loss_function(features, label)
+
                 losses.update(loss.item())
                 
                   
@@ -63,17 +62,15 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
                     scheduler.step()
    
         else:
-        
+
             # data (batches) to device   
-            query = query.to(train_config.device)
-            reference = reference.to(train_config.device)
+            wav2vec2 = wav2vec2.to(train_config.device)
+            vit = vit.to(train_config.device)
+            label = label.to(train_config.device)
 
             # Forward pass
-            features1, features2 = model(query, reference)
-            if torch.cuda.device_count() > 1 and len(train_config.gpu_ids) > 1: 
-                loss = loss_function(features1, features2, model.module.logit_scale.exp())
-            else:
-                loss = loss_function(features1, features2, model.logit_scale.exp()) 
+            features = model(wav2vec2, vit)
+            loss = loss_function(features, label)
             losses.update(loss.item())
 
             # Calculate gradient using backward pass

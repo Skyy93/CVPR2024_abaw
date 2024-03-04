@@ -21,7 +21,7 @@ class Model(nn.Module):
         else:
             self.model = timm.create_model(model_name, pretrained=pretrained, num_classes=0)
 
-        self.model = nn.Linear(2048, 6)
+        self.model = nn.Linear(1152, 6)
 
     def get_config(self, ):
         data_config = timm.data.resolve_model_data_config(self.model)

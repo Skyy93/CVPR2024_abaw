@@ -6,9 +6,9 @@ from torch.cuda.amp import autocast
 
 def evaluate(config, model, eval_dataloader):
     preds, labels = predict(config, model, eval_dataloader)
-    r = torch.cov(preds, labels) / torch.std(preds) / torch.std(labels) # r = cov(x,y)/sd(x)/sd(y)
+    r = torch.cov(torch.cat([preds, labels], dim=1)) / torch.std(preds) / torch.std(labels) # r = cov(x,y)/sd(x)/sd(y)
     r = r.mean()
-    return r
+    return r.cpu().numpy()
 
 
 def predict(train_config, model, dataloader):
@@ -32,7 +32,7 @@ def predict(train_config, model, dataloader):
 
                 wav2vec = wav2vec.to(train_config.device)
                 vit = vit.to(train_config.device)
-
+                label = label.to(train_config.device)
                 pred = model(wav2vec, vit)
 
             # save features in fp32 for sim calculation
