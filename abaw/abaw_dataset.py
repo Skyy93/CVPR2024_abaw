@@ -20,7 +20,7 @@ class HumeDatasetTrain(Dataset):
         super().__init__()
  
         self.data_folder = data_folder
-        self.label_file = label_file
+        self.label_file = pd.read_csv(label_file)
             
 
     def __getitem__(self, index):
@@ -43,7 +43,7 @@ class HumeDatasetEval(Dataset):
         super().__init__()
 
         self.data_folder = data_folder
-        self.label_file = label_file
+        self.label_file = pd.read_csv(label_file)
 
     def __getitem__(self, index):
         return None
