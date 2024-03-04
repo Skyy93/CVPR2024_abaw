@@ -26,10 +26,7 @@ class TrainingConfiguration:
     '''
 
     # Model
-    model: str = 'convnext_base.fb_in22k_ft_in1k_384'
-
-    # Override model image size
-    img_size: int = 256
+    model: tuple = ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
 
     # Training 
     mixed_precision: bool = True
@@ -111,15 +108,7 @@ if __name__ == '__main__':
 
     print("\nModel: {}".format(config.model))
 
-    model = Model(config.model,
-                  pretrained=True,
-                  img_size=config.img_size)
-
-    data_config = model.get_config()
-    print(data_config)
-    mean = data_config["mean"]
-    std = data_config["std"]
-    img_size = config.img_size
+    model = Model(config.model)
 
     # load pretrained Checkpoint    
     if config.checkpoint_start is not None:
@@ -141,7 +130,8 @@ if __name__ == '__main__':
 
     # Train
     train_dataset = HumeDatasetTrain(data_folder=config.data_folder,
-                                     label_file='data/train_split.csv'
+                                     label_file='data/train_split.csv',
+                                     model=config.model,
                                      )
 
     train_dataloader = DataLoader(train_dataset,
@@ -152,7 +142,8 @@ if __name__ == '__main__':
 
     # Reference Satellite Images
     eval_dataset = HumeDatasetEval(data_folder=config.data_folder,
-                                   label_file='data/valid_split.csv'
+                                   label_file='data/valid_split.csv',
+                                   model=config.model,
                                    )
 
     eval_dataloader = DataLoader(train_dataset,
@@ -274,7 +265,7 @@ if __name__ == '__main__':
                 else:
                     torch.save(model.state_dict(), '{}/weights_e{}_{:.4f}.pth'.format(model_path, epoch, p1))
             print("Epoch: {}, Eval Pearson = {:.3f},".format(epoch, p1))
-            
+
     if torch.cuda.device_count() > 1 and len(config.gpu_ids) > 1:
         torch.save(model.module.state_dict(), '{}/weights_end.pth'.format(model_path))
     else:

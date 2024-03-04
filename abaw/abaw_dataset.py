@@ -8,16 +8,28 @@ import torch
 from tqdm import tqdm
 import time
 import pickle
+import timm
+from transformers import AutoProcessor
 
 cv2.setNumThreads(2)
 
 
 class HumeDatasetTrain(Dataset):
 
-    def __init__(self, data_folder, label_file=None):
+    def __init__(self, data_folder, label_file=None, model=None):
         super().__init__()
         self.data_folder = data_folder
         self.label_file = pd.read_csv(label_file)
+        self.vision_model = model[0]
+        self.audio_model = model[0]
+
+        if self.vision_model != 'linear':
+            data_config = timm.data.resolve_model_data_config(self.vision_model)
+
+        if self.audio_model != 'linear':
+            self.processor = AutoProcessor(self.audio_model)
+
+
 
     def __getitem__(self, index):
         row = self.label_file.iloc[index]
@@ -39,13 +51,16 @@ class HumeDatasetTrain(Dataset):
 
     def __len__(self):
         return len(self.label_file)
-        
 
+#     def get_config(self, ):
+#         data_config = timm.data.resolve_model_data_config(self.model)
+#         return data_config
+# TODO: needed for later
             
        
 class HumeDatasetEval(Dataset):
 
-    def __init__(self, data_folder, label_file=None):
+    def __init__(self, data_folder, label_file=None, model=None):
         super().__init__()
         self.data_folder = data_folder
         self.label_file = pd.read_csv(label_file)
