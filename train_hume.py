@@ -23,20 +23,12 @@ class TrainingConfiguration:
     '''
     Describes configuration of the training process
     '''
-    #--------------------------------------------------------------------------
-    # Timm Models:
-    #--------------------------------------------------------------------------    
-    # 'convnext_base.fb_in22k_ft_in1k_384'   
-    # 'convnextv2_base.fcmae_ft_in22k_in1k_384'
-    # 'vit_base_patch16_384.augreg_in21k_ft_in1k'
-    # 'vit_base_patch16_clip_224.openai'    
-    #--------------------------------------------------------------------------
-    
+
     # Model
     model: str = 'convnext_base.fb_in22k_ft_in1k_384'
     
     # Override model image size
-    img_size: int = 384
+    img_size: int = 256
     
     # Training 
     mixed_precision: bool = True
