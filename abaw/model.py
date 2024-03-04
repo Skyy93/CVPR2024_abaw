@@ -17,21 +17,20 @@ class Model(nn.Module):
             self.model = nn.Linear(1152, 6)
             self.linear = True
         else:
-            self.vision_model = timm.create_model(model_name[0], pretrained=True, num_classes=0)
+            #self.vision_model = timm.create_model(model_name[0], pretrained=True, num_classes=0)
             self.audio_model = Wav2Vec2BertModel.from_pretrained(model_name[1])
-            self.fusion_model = Mamba.from_pretrained('state-spaces/mamba-130m')
+            self.fusion_model = nn.Linear(1024,6)#Mamba.from_pretrained('state-spaces/mamba-130m')
 
 
-    def forward(self, vision, audio):
+    def forward(self, audio, vision):
         if self.linear:
             return self.model(torch.cat([torch.mean(vision, dim=0), torch.mean(audio, dim=0)], dim=1))
         else:
             with torch.no_grad():
-                vision = self.vision_model(**vision)
-                audio = self.audio_model(**audio)
-                print(vision.shape)
-                print(audio.shape)
-            pred = self.fusion_model(vision, audio)
+                #vision = self.vision_model(**vision)
+                audio = self.audio_model(**audio).last_hidden_state
+                audio = audio.mean(1)
+            pred = self.fusion_model(audio)
             return pred
 
 

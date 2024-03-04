@@ -32,12 +32,12 @@ class TrainingConfiguration:
     mixed_precision: bool = True
     seed = 1
     epochs: int = 20
-    batch_size: int = 128  # keep in mind real_batch_size = 2 * batch_size
+    batch_size: int = 16  # keep in mind real_batch_size = 2 * batch_size
     verbose: bool = True
     gpu_ids: tuple = (0,)  # GPU ids for training
 
     # Eval
-    batch_size_eval: int = 128
+    batch_size_eval: int = 16
     eval_every_n_epoch: int = 2  # eval every n Epoch
 
     # Optimizer 
@@ -138,7 +138,8 @@ if __name__ == '__main__':
                                   batch_size=config.batch_size,
                                   num_workers=config.num_workers,
                                   shuffle=True,
-                                  pin_memory=True)
+                                  pin_memory=True,
+                                  collate_fn=train_dataset.collate_fn)
 
     # Reference Satellite Images
     eval_dataset = HumeDatasetEval(data_folder=config.data_folder,
@@ -150,7 +151,8 @@ if __name__ == '__main__':
                                  batch_size=config.batch_size_eval,
                                  num_workers=config.num_workers,
                                  shuffle=False,
-                                 pin_memory=True)
+                                 pin_memory=True,
+                                 collate_fn=eval_dataset.collate_fn)
 
     print("Train Length:", len(train_dataset))
     print("Val Length:", len(eval_dataset))

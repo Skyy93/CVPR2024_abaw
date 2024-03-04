@@ -66,7 +66,7 @@ class HumeDatasetTrain(Dataset):
             img_files = sorted(os.listdir(img_folder_path))
             selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
             images = []
-
+            asdf # TODO remove later
             for idx in selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
                 img = Image.open(img_path).convert('RGB')
@@ -80,27 +80,34 @@ class HumeDatasetTrain(Dataset):
             return torch.stack(images)
         except:
             images = []
-            while len(images) < 50:
+            while len(images) < 1: # correct when face images are there
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
-            print(f"No image found for index: {index}")
+            #print(f"No image found for index: {index}")
             return torch.stack(images)
 
     def process_audio(self, filename):
-        audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.wav"
+        audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.mp3"
         try:
-            audio_data, _ = sf.read(audio_file_path)
-            processed_audio = self.processor(audio_data)
+            audio_data, sr = sf.read(audio_file_path)
         except Exception as e:
             print(f"Error processing audio file {audio_file_path}: {e}")
             audio_data = np.zeros(128, dtype=np.float32)
-            processed_audio = self.processor(audio_data)
 
-        return processed_audio
+        return audio_data
 
 
     def __len__(self):
         return len(self.label_file)
+
+    def collate_fn(self, batch):
+        audio_data, vision_data, labels_data = zip(*batch)
+        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", max_length=1024, truncation=True)
+        vision_stacked = torch.stack(vision_data)
+    
+        labels_stacked = torch.stack(labels_data)
+    
+        return audio_data_padded, vision_stacked, labels_stacked
 
 
 class HumeDatasetEval(Dataset):
@@ -149,7 +156,7 @@ class HumeDatasetEval(Dataset):
             img_files = sorted(os.listdir(img_folder_path))
             selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
             images = []
-
+            asdf # TODO remove later
             for idx in selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
                 img = Image.open(img_path).convert('RGB')
@@ -163,23 +170,31 @@ class HumeDatasetEval(Dataset):
             return torch.stack(images)
         except:
             images = []
-            while len(images) < 50:
+            while len(images) < 1: # TODO correct when faceimage are there
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
-            print(f"No image found for index: {index}")
+            #print(f"No image found for index: {index}")
             return torch.stack(images)
 
     def process_audio(self, filename):
-        audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.wav"
+        audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.mp3"
         try:
-            audio_data, _ = sf.read(audio_file_path)
-            processed_audio = self.processor(audio_data)
+            audio_data, sr = sf.read(audio_file_path)
         except Exception as e:
             print(f"Error processing audio file {audio_file_path}: {e}")
-            audio_data = np.zeros(128, dtype=np.float32)
-            processed_audio = self.processor(audio_data)
+            audio_data = np.zeros((2,128), dtype=np.float32)
 
-        return processed_audio
+        return audio_data
 
     def __len__(self):
         return len(self.label_file)
+
+    def collate_fn(self, batch):
+        audio_data, vision_data, labels_data = zip(*batch)
+        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", max_length=1024, Truncation=True) # TODO whats the max length in the dataset?
+    
+        vision_stacked = torch.stack(vision_data)
+    
+        labels_stacked = torch.stack(labels_data)
+    
+        return audio_data_padded, vision_stacked, labels_stacked
