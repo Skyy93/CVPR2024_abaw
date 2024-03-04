@@ -17,8 +17,8 @@ class Model(nn.Module):
             self.model = nn.Linear(1152, 6)
             self.linear = True
         else:
-            self.vision_model = timm.create_model(model_name, pretrained=True, num_classes=0)
-            self.audio_model = Wav2Vec2BertModel.from_pretrained("hf-audio/wav2vec2-bert-CV16-en")
+            self.vision_model = timm.create_model(model_name[0], pretrained=True, num_classes=0)
+            self.audio_model = Wav2Vec2BertModel.from_pretrained(model_name[1])
             self.fusion_model = Mamba.from_pretrained('state-spaces/mamba-130m')
 
 
@@ -27,8 +27,8 @@ class Model(nn.Module):
             return self.model(torch.cat([torch.mean(vision, dim=0), torch.mean(audio, dim=0)], dim=1))
         else:
             with torch.no_grad():
-                vision = self.vision_model(vision)
-                audio = self.audio_model(audio)
+                vision = self.vision_model(**vision)
+                audio = self.audio_model(**audio)
                 print(vision.shape)
                 print(audio.shape)
             pred = self.fusion_model(vision, audio)

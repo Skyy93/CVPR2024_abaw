@@ -26,18 +26,18 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
         bar = dataloader
     
     # for loop over one epoch
-    for wav2vec2, vit, label in bar:
+    for audio, vision, label in bar:
         
         if scaler:
             with autocast():
             
                 # data (batches) to device   
-                wav2vec2 = wav2vec2.to(train_config.device)
-                vit = vit.to(train_config.device)
+                audio = audio.to(train_config.device)
+                vision = vision.to(train_config.device)
                 label = label.to(train_config.device)
             
                 # Forward pass
-                features = model(wav2vec2, vit)
+                features = model(audio, vision)
                 loss = loss_function(features, label)
 
                 losses.update(loss.item())
@@ -64,12 +64,12 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
         else:
 
             # data (batches) to device   
-            wav2vec2 = wav2vec2.to(train_config.device)
-            vit = vit.to(train_config.device)
+            audio = audio.to(train_config.device)
+            vision = vision.to(train_config.device)
             label = label.to(train_config.device)
 
             # Forward pass
-            features = model(wav2vec2, vit)
+            features = model(audio, vision)
             loss = loss_function(features, label)
             losses.update(loss.item())
 
