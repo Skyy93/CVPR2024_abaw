@@ -182,7 +182,7 @@ class HumeDatasetEval(Dataset):
             audio_data, sr = sf.read(audio_file_path)
         except Exception as e:
             print(f"Error processing audio file {audio_file_path}: {e}")
-            audio_data = np.zeros((2,128), dtype=np.float32)
+            audio_data = np.zeros((128,), dtype=np.float32)
 
         return audio_data
 
@@ -191,8 +191,7 @@ class HumeDatasetEval(Dataset):
 
     def collate_fn(self, batch):
         audio_data, vision_data, labels_data = zip(*batch)
-        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", max_length=1024, Truncation=True) # TODO whats the max length in the dataset?
-    
+        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", max_length=1024, truncation=True)
         vision_stacked = torch.stack(vision_data)
     
         labels_stacked = torch.stack(labels_data)

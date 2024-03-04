@@ -37,8 +37,8 @@ def predict(train_config, model, dataloader):
                 pred = model(wav2vec, vit)
 
             # save features in fp32 for sim calculation
-            labels.append(label.cpu())
-            preds.append(pred.to(torch.float32).cpu())
+            labels.append(label.detach().cpu())
+            preds.append(pred.to(torch.float32).detach().cpu())
 
         # keep Features on GPU
         preds = torch.cat(preds, dim=0)

@@ -147,7 +147,7 @@ if __name__ == '__main__':
                                    model=config.model,
                                    )
 
-    eval_dataloader = DataLoader(train_dataset,
+    eval_dataloader = DataLoader(eval_dataset,
                                  batch_size=config.batch_size_eval,
                                  num_workers=config.num_workers,
                                  shuffle=False,
