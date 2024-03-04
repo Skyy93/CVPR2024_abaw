@@ -14,6 +14,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
 import os
+import soundfile as sf
 
 cv2.setNumThreads(2)
 
@@ -87,7 +88,10 @@ class HumeDatasetTrain(Dataset):
 
     def process_audio(self, filename):
         audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.wav"
-        return self.processor(audio_file_path)
+        audio_data, _ = sf.read(audio_file_path)
+        processed_audio = self.processor(audio_data)
+
+        return processed_audio
 
     def __len__(self):
         return len(self.label_file)
@@ -161,7 +165,10 @@ class HumeDatasetEval(Dataset):
 
     def process_audio(self, filename):
         audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.wav"
-        return self.processor(audio_file_path)
+        audio_data, _ = sf.read(audio_file_path)
+        processed_audio = self.processor(audio_data)
+
+        return processed_audio
 
     def __len__(self):
         return len(self.label_file)
