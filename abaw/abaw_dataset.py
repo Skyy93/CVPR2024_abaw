@@ -30,10 +30,11 @@ class HumeDatasetTrain(Dataset):
         if self.vision_model != 'linear':
             self.data_config = timm.data.resolve_model_data_config(self.vision_model)
             self.transform = A.Compose([
-                A.Resize(height=self.data_config['img_size'], width=self.data_config['img_size']),
+                A.Resize(height=self.data_config['input_size'][1], width=self.data_config['input_size'][2]),
                 A.Normalize(mean=self.data_config['mean'], std=self.data_config['std']),
                 ToTensorV2(),
             ])
+
         if self.audio_model != 'linear':
             self.processor = AutoProcessor.from_pretrained(self.audio_model)
 
@@ -59,32 +60,39 @@ class HumeDatasetTrain(Dataset):
         return audio, vision, labels
 
     def process_images(self, index):
-        img_folder_path = f"{self.data_folder}data/face_images/{index}/"
-        img_files = sorted(os.listdir(img_folder_path))
-        selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
-        images = []
+        try:
+            img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
+            img_files = sorted(os.listdir(img_folder_path))
+            selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
+            images = []
 
-        for idx in selected_indices:
-            img_path = os.path.join(img_folder_path, img_files[idx])
-            img = Image.open(img_path).convert('RGB')
-            images.append(self.transform(image=np.array(img))['image'])
+            for idx in selected_indices:
+                img_path = os.path.join(img_folder_path, img_files[idx])
+                img = Image.open(img_path).convert('RGB')
+                images.append(self.transform(image=np.array(img))['image'])
 
-        # Add black images if there are less than 50 images
-        while len(images) < 50:
-            black_img = Image.new('RGB', (160, 160))
-            images.append(self.transform(image=np.array(black_img))['image'])
+            # Add black images if there are less than 50 images
+            while len(images) < 50:
+                black_img = Image.new('RGB', (160, 160))
+                images.append(self.transform(image=np.array(black_img))['image'])
 
-        return torch.stack(images)
+            return torch.stack(images)
+        except:
+            images = []
+            while len(images) < 50:
+                black_img = Image.new('RGB', (160, 160))
+                images.append(self.transform(image=np.array(black_img))['image'])
+            print(f"No image found for index: {index}")
+            return torch.stack(images)
 
     def process_audio(self, filename):
-        audio_file_path = f"{self.data_folder}data/audio/{str(int(filename)).zfill(5)}.wav"
-        return self.processor.process(audio_file_path)
+        audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.wav"
+        return self.processor(audio_file_path)
 
     def __len__(self):
         return len(self.label_file)
 
 
-       
 class HumeDatasetEval(Dataset):
 
     def __init__(self, data_folder, label_file=None, model=None):
@@ -97,7 +105,7 @@ class HumeDatasetEval(Dataset):
         if self.vision_model != 'linear':
             self.data_config = timm.data.resolve_model_data_config(self.vision_model)
             self.transform = A.Compose([
-                A.Resize(height=self.data_config['img_size'], width=self.data_config['img_size']),
+                A.Resize(height=self.data_config['input_size'][1], width=self.data_config['input_size'][2]),
                 A.Normalize(mean=self.data_config['mean'], std=self.data_config['std']),
                 ToTensorV2(),
             ])
@@ -126,30 +134,34 @@ class HumeDatasetEval(Dataset):
         return audio, vision, labels
 
     def process_images(self, index):
-        img_folder_path = f"{self.data_folder}data/face_images/{index}/"
-        img_files = sorted(os.listdir(img_folder_path))
-        selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
-        images = []
+        try:
+            img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
+            img_files = sorted(os.listdir(img_folder_path))
+            selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
+            images = []
 
-        for idx in selected_indices:
-            img_path = os.path.join(img_folder_path, img_files[idx])
-            img = Image.open(img_path).convert('RGB')
-            images.append(self.transform(image=np.array(img))['image'])
+            for idx in selected_indices:
+                img_path = os.path.join(img_folder_path, img_files[idx])
+                img = Image.open(img_path).convert('RGB')
+                images.append(self.transform(image=np.array(img))['image'])
 
-        # Add black images if there are less than 50 images
-        while len(images) < 50:
-            black_img = Image.new('RGB', (160, 160))
-            images.append(self.transform(image=np.array(black_img))['image'])
+            # Add black images if there are less than 50 images
+            while len(images) < 50:
+                black_img = Image.new('RGB', (160, 160))
+                images.append(self.transform(image=np.array(black_img))['image'])
 
-        return torch.stack(images)
+            return torch.stack(images)
+        except:
+            images = []
+            while len(images) < 50:
+                black_img = Image.new('RGB', (160, 160))
+                images.append(self.transform(image=np.array(black_img))['image'])
+            print(f"No image found for index: {index}")
+            return torch.stack(images)
 
     def process_audio(self, filename):
-        audio_file_path = f"{self.data_folder}data/audio/{str(int(filename)).zfill(5)}.wav"
-        return self.processor.process(audio_file_path)
+        audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.wav"
+        return self.processor(audio_file_path)
 
     def __len__(self):
         return len(self.label_file)
-
-
-
-
