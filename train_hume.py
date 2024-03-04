@@ -234,7 +234,7 @@ if __name__ == '__main__':
     best_score = 0
 
     for epoch in range(1, config.epochs + 1):
-
+        model.train()
         print("\n{}[Epoch: {}]{}".format(30 * "-", epoch, 30 * "-"))
 
         train_loss = train(config,
@@ -251,7 +251,7 @@ if __name__ == '__main__':
 
         # evaluate
         if (epoch % config.eval_every_n_epoch == 0 and epoch != 0) or epoch == config.epochs:
-
+            model.eval()
             print("\n{}[{}]{}".format(30 * "-", "Evaluate", 30 * "-"))
 
             p1 = evaluate(config=config,
