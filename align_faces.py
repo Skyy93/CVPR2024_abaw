@@ -7,9 +7,11 @@ from PIL import Image
 from tqdm import tqdm
 
 input = 'data/face_images'
-output = 'data/face_images_aligned'
+output_dimension = 160
+output_aligned = 'data/face_images_aligned'
+output_landmarks = 'data/face_images_landmarks'
 
-def image_align(img, face_landmarks, output_size=160,
+def image_align(img, face_landmarks, output_size=output_dimension,
                 transform_size=4096, enable_padding=True, x_scale=1,
                 y_scale=1, em_scale=0.1, alpha=False, pad_mode='const'):
     # img = my_draw_image_by_points(img, face_landmarks[36:60], 1, (0,255,0))
@@ -123,9 +125,9 @@ if __name__ == '__main__':
         Lips = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 185, 40, 39, 37, 0, 267, 269, 270, 409, 78, 95, 88,
                 178, 87, 14, 317, 402, 318, 324, 308, 191, 80, 81, 82, 13, 312, 311, 310, 415]
 
-
-        for img_path in folder.glob('*.jpg'):
-            aligned_img_path = Path(output) / img_path.parts[-2] / img_path.parts[-1]
+        landmarks = []
+        for img_path in sorted(folder.glob('*.jpg')):
+            aligned_img_path = Path(output_aligned) / img_path.parts[-2] / img_path.parts[-1]
             image = np.array(Image.open(img_path))
 
             # for name, image in images.items():
@@ -159,16 +161,19 @@ if __name__ == '__main__':
                 lm_y = lm_left_eye_y + lm_right_eye_y + lm_lips_y
                 landmark = np.array([lm_x, lm_y]).T
 
+            landmarks.append(landmark)
             aligned_image = image_align(Image.open(img_path), landmark)
             aligned_image.save(aligned_img_path)
 
+        np.save(Path(output_landmarks) / (folder.name + '.npy'), np.array(landmarks))
         face_mesh.close()
 
 
+    Path(output_landmarks).mkdir(parents=True, exist_ok=True)
     #debug
     #for folder in Path(input).glob('04595'):
-    folders = list(Path(input).glob('*'))
-    ((Path(output) / folder.parts[-1]).mkdir(parents=True, exist_ok=True) for folder in folders)
+    folders = list(Path(input).glob('04595'))
+    ((Path(output_aligned) / folder.parts[-1]).mkdir(parents=True, exist_ok=True) for folder in folders)
     #debug
     #f(Path('data/face_images/04595/0.jpg'))
     with Pool() as p:
