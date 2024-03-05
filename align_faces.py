@@ -118,7 +118,7 @@ if __name__ == '__main__':
                     static_image_mode=True,
                     refine_landmarks=True,
                     max_num_faces=1,
-                    min_detection_confidence=0.5)
+                    min_detection_confidence=0.1)
 
         Left_eye = [263, 249, 390, 373, 374, 380, 381, 382, 362, 466, 388, 387, 386, 385, 384, 398]
         Right_eye = [33, 7, 163, 144, 145, 153, 154, 155, 133, 246, 161, 160, 159, 158, 157, 173]
@@ -133,36 +133,34 @@ if __name__ == '__main__':
             # for name, image in images.items():
             # Convert the BGR image to RGB and process it with MediaPipe Face Mesh.
             results = face_mesh.process(image)
-            if results is None:
-                print(f'No face mesh 1 detected for {aligned_img_path}')
-                continue
+            if results is None or not results.multi_face_landmarks:
+                print(f'No face mesh detected for {aligned_img_path}')
+                aligned_image = Image.fromarray(np.zeros((output_dimension, output_dimension, 3), dtype=np.uint8))
+                landmark = np.zeros((72, 2), dtype=np.float64)
+            else:
+                for face_landmarks in results.multi_face_landmarks:
+                    lm_left_eye_x = []
+                    lm_left_eye_y = []
+                    lm_right_eye_x = []
+                    lm_right_eye_y = []
+                    lm_lips_x = []
+                    lm_lips_y = []
+                    for i in Left_eye:
+                        lm_left_eye_x.append(face_landmarks.landmark[i].x)
+                        lm_left_eye_y.append(face_landmarks.landmark[i].y)
+                    for i in Right_eye:
+                        lm_right_eye_x.append(face_landmarks.landmark[i].x)
+                        lm_right_eye_y.append(face_landmarks.landmark[i].y)
+                    for i in Lips:
+                        lm_lips_x.append(face_landmarks.landmark[i].x)
+                        lm_lips_y.append(face_landmarks.landmark[i].y)
+                    lm_x = lm_left_eye_x + lm_right_eye_x + lm_lips_x
+                    lm_y = lm_left_eye_y + lm_right_eye_y + lm_lips_y
+                    landmark = np.array([lm_x, lm_y]).T
 
-            if not results.multi_face_landmarks:
-                print(f'No face mesh 2 detected for {aligned_img_path}')
-                continue
-
-            for face_landmarks in results.multi_face_landmarks:
-                lm_left_eye_x = []
-                lm_left_eye_y = []
-                lm_right_eye_x = []
-                lm_right_eye_y = []
-                lm_lips_x = []
-                lm_lips_y = []
-                for i in Left_eye:
-                    lm_left_eye_x.append(face_landmarks.landmark[i].x)
-                    lm_left_eye_y.append(face_landmarks.landmark[i].y)
-                for i in Right_eye:
-                    lm_right_eye_x.append(face_landmarks.landmark[i].x)
-                    lm_right_eye_y.append(face_landmarks.landmark[i].y)
-                for i in Lips:
-                    lm_lips_x.append(face_landmarks.landmark[i].x)
-                    lm_lips_y.append(face_landmarks.landmark[i].y)
-                lm_x = lm_left_eye_x + lm_right_eye_x + lm_lips_x
-                lm_y = lm_left_eye_y + lm_right_eye_y + lm_lips_y
-                landmark = np.array([lm_x, lm_y]).T
+                aligned_image = image_align(Image.open(img_path), landmark)
 
             landmarks.append(landmark)
-            aligned_image = image_align(Image.open(img_path), landmark)
             aligned_image.save(aligned_img_path)
 
         np.save(Path(output_landmarks) / (folder.name + '.npy'), np.array(landmarks))
@@ -172,8 +170,9 @@ if __name__ == '__main__':
     Path(output_landmarks).mkdir(parents=True, exist_ok=True)
     #debug
     #for folder in Path(input).glob('04595'):
-    folders = list(Path(input).glob('04595'))
-    ((Path(output_aligned) / folder.parts[-1]).mkdir(parents=True, exist_ok=True) for folder in folders)
+    folders = list(Path(input).glob('*'))
+    for folder in folders:
+        (Path(output_aligned) / folder.parts[-1]).mkdir(parents=True, exist_ok=True)
     #debug
     #f(Path('data/face_images/04595/0.jpg'))
     with Pool() as p:
