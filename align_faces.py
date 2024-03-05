@@ -4,6 +4,7 @@ from multiprocessing import Pool
 import numpy as np
 import scipy.ndimage
 from PIL import Image
+from tqdm import tqdm
 
 input = 'data/face_images'
 output = 'data/face_images_aligned'
@@ -109,29 +110,34 @@ def image_align(img, face_landmarks, output_size=160,
     return out_image
 
 if __name__ == '__main__':
-    def f(img_path: Path):
-        aligned_img_path = Path(output) / img_path.parts[-2] / img_path.parts[-1]
-        image = np.array(Image.open(img_path))
+    def f(folder: Path):
         mp_face_mesh = mp.solutions.face_mesh
+        face_mesh = mp_face_mesh.FaceMesh(
+                    static_image_mode=True,
+                    refine_landmarks=True,
+                    max_num_faces=1,
+                    min_detection_confidence=0.5)
 
         Left_eye = [263, 249, 390, 373, 374, 380, 381, 382, 362, 466, 388, 387, 386, 385, 384, 398]
         Right_eye = [33, 7, 163, 144, 145, 153, 154, 155, 133, 246, 161, 160, 159, 158, 157, 173]
         Lips = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 185, 40, 39, 37, 0, 267, 269, 270, 409, 78, 95, 88,
                 178, 87, 14, 317, 402, 318, 324, 308, 191, 80, 81, 82, 13, 312, 311, 310, 415]
 
-        with mp_face_mesh.FaceMesh(
-                static_image_mode=True,
-                refine_landmarks=True,
-                max_num_faces=1,
-                min_detection_confidence=0.5) as face_mesh:
-            #   for name, image in images.items():
+
+        for img_path in folder.glob('*.jpg'):
+            aligned_img_path = Path(output) / img_path.parts[-2] / img_path.parts[-1]
+            image = np.array(Image.open(img_path))
+
+            # for name, image in images.items():
             # Convert the BGR image to RGB and process it with MediaPipe Face Mesh.
             results = face_mesh.process(image)
             if results is None:
-                return
+                print(f'No face mesh 1 detected for {aligned_img_path}')
+                continue
 
             if not results.multi_face_landmarks:
-                return
+                print(f'No face mesh 2 detected for {aligned_img_path}')
+                continue
 
             for face_landmarks in results.multi_face_landmarks:
                 lm_left_eye_x = []
@@ -153,15 +159,18 @@ if __name__ == '__main__':
                 lm_y = lm_left_eye_y + lm_right_eye_y + lm_lips_y
                 landmark = np.array([lm_x, lm_y]).T
 
-        aligned_image = image_align(Image.open(img_path), landmark)
-        aligned_image.save(aligned_img_path)
+            aligned_image = image_align(Image.open(img_path), landmark)
+            aligned_image.save(aligned_img_path)
+
+        face_mesh.close()
 
 
     #debug
     #for folder in Path(input).glob('04595'):
-    for folder in Path(input).glob('*'):
-        (Path(output) / folder.parts[-1]).mkdir(parents=True, exist_ok=True)
-        #debug
-        #f(Path('data/face_images/04595/0.jpg'))
-        with Pool() as p:
-            list(p.imap_unordered(f, list(folder.glob('*.jpg')), chunksize=10))
+    folders = list(Path(input).glob('*'))
+    ((Path(output) / folder.parts[-1]).mkdir(parents=True, exist_ok=True) for folder in folders)
+    #debug
+    #f(Path('data/face_images/04595/0.jpg'))
+    with Pool() as p:
+        work = p.imap_unordered(f, folders)
+        list(tqdm(work, total=len(folders)))
