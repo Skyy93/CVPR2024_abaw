@@ -7,9 +7,10 @@ from PIL import Image
 from tqdm import tqdm
 
 input = 'data/face_images'
-output_dimension = 160
+output_dimension = 256
 output_aligned = 'data/face_images_aligned'
 output_landmarks = 'data/face_images_landmarks'
+min_confidence = 0.0
 
 def image_align(img, face_landmarks, output_size=output_dimension,
                 transform_size=4096, enable_padding=True, x_scale=1,
@@ -118,14 +119,15 @@ if __name__ == '__main__':
                     static_image_mode=True,
                     refine_landmarks=True,
                     max_num_faces=1,
-                    min_detection_confidence=0.1)
+                    min_detection_confidence=min_confidence,
+                    min_tracking_confidence=min_confidence)
 
         Left_eye = [263, 249, 390, 373, 374, 380, 381, 382, 362, 466, 388, 387, 386, 385, 384, 398]
         Right_eye = [33, 7, 163, 144, 145, 153, 154, 155, 133, 246, 161, 160, 159, 158, 157, 173]
         Lips = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 185, 40, 39, 37, 0, 267, 269, 270, 409, 78, 95, 88,
                 178, 87, 14, 317, 402, 318, 324, 308, 191, 80, 81, 82, 13, 312, 311, 310, 415]
 
-        landmarks = []
+        landmarks_fm = []
         for img_path in sorted(folder.glob('*.jpg')):
             aligned_img_path = Path(output_aligned) / img_path.parts[-2] / img_path.parts[-1]
             image = np.array(Image.open(img_path))
@@ -136,34 +138,35 @@ if __name__ == '__main__':
             if results is None or not results.multi_face_landmarks:
                 print(f'No face mesh detected for {aligned_img_path}')
                 aligned_image = Image.fromarray(np.zeros((output_dimension, output_dimension, 3), dtype=np.uint8))
-                landmark = np.zeros((72, 2), dtype=np.float64)
+                landmark_fm = np.zeros((478, 3), dtype=np.float64)
             else:
-                for face_landmarks in results.multi_face_landmarks:
-                    lm_left_eye_x = []
-                    lm_left_eye_y = []
-                    lm_right_eye_x = []
-                    lm_right_eye_y = []
-                    lm_lips_x = []
-                    lm_lips_y = []
-                    for i in Left_eye:
-                        lm_left_eye_x.append(face_landmarks.landmark[i].x)
-                        lm_left_eye_y.append(face_landmarks.landmark[i].y)
-                    for i in Right_eye:
-                        lm_right_eye_x.append(face_landmarks.landmark[i].x)
-                        lm_right_eye_y.append(face_landmarks.landmark[i].y)
-                    for i in Lips:
-                        lm_lips_x.append(face_landmarks.landmark[i].x)
-                        lm_lips_y.append(face_landmarks.landmark[i].y)
-                    lm_x = lm_left_eye_x + lm_right_eye_x + lm_lips_x
-                    lm_y = lm_left_eye_y + lm_right_eye_y + lm_lips_y
-                    landmark = np.array([lm_x, lm_y]).T
+                face_landmarks = results.multi_face_landmarks[0]
+                lm_left_eye_x = []
+                lm_left_eye_y = []
+                lm_right_eye_x = []
+                lm_right_eye_y = []
+                lm_lips_x = []
+                lm_lips_y = []
+                for i in Left_eye:
+                    lm_left_eye_x.append(face_landmarks.landmark[i].x)
+                    lm_left_eye_y.append(face_landmarks.landmark[i].y)
+                for i in Right_eye:
+                    lm_right_eye_x.append(face_landmarks.landmark[i].x)
+                    lm_right_eye_y.append(face_landmarks.landmark[i].y)
+                for i in Lips:
+                    lm_lips_x.append(face_landmarks.landmark[i].x)
+                    lm_lips_y.append(face_landmarks.landmark[i].y)
+                lm_x = lm_left_eye_x + lm_right_eye_x + lm_lips_x
+                lm_y = lm_left_eye_y + lm_right_eye_y + lm_lips_y
+                landmark_lf = np.array([lm_x, lm_y]).T
+                aligned_image = image_align(Image.open(img_path), landmark_lf)
+                landmark_fm = [[x.x, x.y, x.z] for x in [y for y in face_landmarks.landmark]]
 
-                aligned_image = image_align(Image.open(img_path), landmark)
 
-            landmarks.append(landmark)
+            landmarks_fm.append(landmark_fm)
             aligned_image.save(aligned_img_path)
 
-        np.save(Path(output_landmarks) / (folder.name + '.npy'), np.array(landmarks))
+        np.save(Path(output_landmarks) / (folder.name + '.npy'), np.array(landmarks_fm))
         face_mesh.close()
 
 
@@ -174,7 +177,7 @@ if __name__ == '__main__':
     for folder in folders:
         (Path(output_aligned) / folder.parts[-1]).mkdir(parents=True, exist_ok=True)
     #debug
-    #f(Path('data/face_images/04595/0.jpg'))
+    f(Path('data/face_images/04595'))
     with Pool() as p:
         work = p.imap_unordered(f, folders)
         list(tqdm(work, total=len(folders)))
