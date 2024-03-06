@@ -13,6 +13,7 @@ output_face = 'data/raw_face'
 output_aligned = 'data/raw_face_aligned'
 output_landmarks = 'data/raw_face_landmarks'
 min_confidence = 0.5
+fps = 5
 
 def image_align(img, face_landmarks, output_size=output_dimension,
                 transform_size=4096, enable_padding=True, x_scale=1,
@@ -81,8 +82,8 @@ def image_align(img, face_landmarks, output_size=output_dimension,
         img = img.crop(crop)
         quad -= crop[0:2]
 
-    crop = img.copy()
-    crop = crop.resize((output_size, output_size), Image.Resampling.LANCZOS)
+    crop_img = img.copy()
+    crop_img = crop_img.resize((output_size, output_size), Image.Resampling.LANCZOS)
 
     # Pad.
     pad = (int(np.floor(min(quad[:, 0]))), int(np.floor(min(quad[:, 1]))), int(np.ceil(max(quad[:, 0]))),
@@ -116,7 +117,7 @@ def image_align(img, face_landmarks, output_size=output_dimension,
                         (quad + 0.5).flatten(), Image.Resampling.BILINEAR)
     out_image = img.resize((output_size, output_size), Image.Resampling.LANCZOS)
 
-    return crop, out_image
+    return crop_img, out_image
 
 if __name__ == '__main__':
     def f(file: Path):
@@ -136,16 +137,13 @@ if __name__ == '__main__':
         (Path(output_face) / file.stem).mkdir(parents=True, exist_ok=True)
         (Path(output_aligned) / file.stem).mkdir(parents=True, exist_ok=True)
         landmarks_fm = []
-        reader = imageio_ffmpeg.read_frames(file)
+        reader = imageio_ffmpeg.read_frames(file, output_params=['-vf', f'fps={fps}'])
         meta = next(reader)
         for i, image in enumerate(reader):
             image = np.array(Image.frombytes('RGB', meta['source_size'], image))
             crop_img_path = Path(output_face) / file.stem / (str(i).zfill(5) + '.jpg')
             aligned_img_path = Path(output_aligned) / file.stem / (str(i).zfill(5) + '.jpg')
-            #image = np.array(Image.open(img_path))
 
-            # for name, image in images.items():
-            # Convert the BGR image to RGB and process it with MediaPipe Face Mesh.
             results = face_mesh.process(image)
             if results is None or not results.multi_face_landmarks:
                 print(f'No face mesh detected for {aligned_img_path}')
@@ -185,11 +183,7 @@ if __name__ == '__main__':
 
     Path(output_aligned).mkdir(parents=True, exist_ok=True)
     Path(output_landmarks).mkdir(parents=True, exist_ok=True)
-    #debug
-    #for folder in Path(input).glob('04595'):
     files = list(Path(input).glob('*.mp4'))
-    #for folder in folders:
-    #    (Path(output_aligned) / folder.parts[-1]).mkdir(parents=True, exist_ok=True)
     #debug
     #f(Path('data/raw/04595.mp4'))
     with Pool() as p:
