@@ -11,7 +11,7 @@ input = 'data/raw'
 output_dimension = 256
 output_face = 'data/raw_face'
 output_aligned = 'data/raw_face_aligned'
-output_landmarks = 'data/raw_face_landmarks'
+#output_landmarks = 'data/raw_face_landmarks'
 min_confidence = 0.5
 fps = 5
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
         (Path(output_face) / file.stem).mkdir(parents=True, exist_ok=True)
         (Path(output_aligned) / file.stem).mkdir(parents=True, exist_ok=True)
-        landmarks_fm = []
+        #landmarks_fm = []
         reader = imageio_ffmpeg.read_frames(file, output_params=['-vf', f'fps={fps}'])
         meta = next(reader)
         for i, image in enumerate(reader):
@@ -148,7 +148,7 @@ if __name__ == '__main__':
             if results is None or not results.multi_face_landmarks:
                 print(f'No face mesh detected for {aligned_img_path}')
                 aligned_image = Image.fromarray(np.zeros((output_dimension, output_dimension, 3), dtype=np.uint8))
-                landmark_fm = np.zeros((478, 3), dtype=np.float64)
+                #landmark_fm = np.zeros((478, 3), dtype=np.float64)
             else:
                 face_landmarks = results.multi_face_landmarks[0]
                 lm_left_eye_x = []
@@ -170,19 +170,18 @@ if __name__ == '__main__':
                 lm_y = lm_left_eye_y + lm_right_eye_y + lm_lips_y
                 landmark_lf = np.array([lm_x, lm_y]).T
                 crop, aligned_image = image_align(image, landmark_lf)
-                landmark_fm = [[x.x, x.y, x.z] for x in [y for y in face_landmarks.landmark]]
+                #landmark_fm = [[x.x, x.y, x.z] for x in [y for y in face_landmarks.landmark]]
 
-
-            landmarks_fm.append(landmark_fm)
+            #landmarks_fm.append(landmark_fm)
             crop.save(crop_img_path)
             aligned_image.save(aligned_img_path)
 
-        np.save(Path(output_landmarks) / (file.stem + '.npy'), np.array(landmarks_fm))
+        #np.save(Path(output_landmarks) / (file.stem + '.npy'), np.array(landmarks_fm))
         face_mesh.close()
 
 
     Path(output_aligned).mkdir(parents=True, exist_ok=True)
-    Path(output_landmarks).mkdir(parents=True, exist_ok=True)
+    #Path(output_landmarks).mkdir(parents=True, exist_ok=True)
     files = list(Path(input).glob('*.mp4'))
     #debug
     #f(Path('data/raw/04595.mp4'))
