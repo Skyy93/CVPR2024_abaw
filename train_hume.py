@@ -26,22 +26,19 @@ class TrainingConfiguration:
     '''
 
     # Model
-    model: str = 'convnext_base.fb_in22k_ft_in1k_384'
-
-    # Override model image size
-    img_size: int = 256
+    model: tuple = ('timm/vit_base_patch14_dinov2.lvd142m', 'hf-audio/wav2vec2-bert-CV16-en') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
 
     # Training 
     mixed_precision: bool = True
     seed = 1
-    epochs: int = 20
-    batch_size: int = 128  # keep in mind real_batch_size = 2 * batch_size
+    epochs: int = 10
+    batch_size: int = 16  # keep in mind real_batch_size = 2 * batch_size
     verbose: bool = True
     gpu_ids: tuple = (0,)  # GPU ids for training
 
     # Eval
-    batch_size_eval: int = 128
-    eval_every_n_epoch: int = 2  # eval every n Epoch
+    batch_size_eval: int = 16
+    eval_every_n_epoch: int = 1  # eval every n Epoch
 
     # Optimizer 
     clip_grad = 100.  # None | float
@@ -111,15 +108,7 @@ if __name__ == '__main__':
 
     print("\nModel: {}".format(config.model))
 
-    model = Model(config.model,
-                  pretrained=True,
-                  img_size=config.img_size)
-
-    data_config = model.get_config()
-    print(data_config)
-    mean = data_config["mean"]
-    std = data_config["std"]
-    img_size = config.img_size
+    model = Model(config.model)
 
     # load pretrained Checkpoint    
     if config.checkpoint_start is not None:
@@ -141,25 +130,29 @@ if __name__ == '__main__':
 
     # Train
     train_dataset = HumeDatasetTrain(data_folder=config.data_folder,
-                                     label_file='data/train_split.csv'
+                                     label_file='data/train_split.csv',
+                                     model=config.model,
                                      )
 
     train_dataloader = DataLoader(train_dataset,
                                   batch_size=config.batch_size,
                                   num_workers=config.num_workers,
                                   shuffle=True,
-                                  pin_memory=True)
+                                  pin_memory=True,
+                                  collate_fn=train_dataset.collate_fn)
 
     # Reference Satellite Images
     eval_dataset = HumeDatasetEval(data_folder=config.data_folder,
-                                   label_file='data/valid_split.csv'
+                                   label_file='data/valid_split.csv',
+                                   model=config.model,
                                    )
 
-    eval_dataloader = DataLoader(train_dataset,
+    eval_dataloader = DataLoader(eval_dataset,
                                  batch_size=config.batch_size_eval,
                                  num_workers=config.num_workers,
                                  shuffle=False,
-                                 pin_memory=True)
+                                 pin_memory=True,
+                                 collate_fn=eval_dataset.collate_fn)
 
     print("Train Length:", len(train_dataset))
     print("Val Length:", len(eval_dataset))
@@ -241,7 +234,7 @@ if __name__ == '__main__':
     best_score = 0
 
     for epoch in range(1, config.epochs + 1):
-
+        model.train()
         print("\n{}[Epoch: {}]{}".format(30 * "-", epoch, 30 * "-"))
 
         train_loss = train(config,
@@ -258,7 +251,7 @@ if __name__ == '__main__':
 
         # evaluate
         if (epoch % config.eval_every_n_epoch == 0 and epoch != 0) or epoch == config.epochs:
-
+            model.eval()
             print("\n{}[{}]{}".format(30 * "-", "Evaluate", 30 * "-"))
 
             p1 = evaluate(config=config,
@@ -274,7 +267,7 @@ if __name__ == '__main__':
                 else:
                     torch.save(model.state_dict(), '{}/weights_e{}_{:.4f}.pth'.format(model_path, epoch, p1))
             print("Epoch: {}, Eval Pearson = {:.3f},".format(epoch, p1))
-            
+
     if torch.cuda.device_count() > 1 and len(config.gpu_ids) > 1:
         torch.save(model.module.state_dict(), '{}/weights_end.pth'.format(model_path))
     else:

@@ -5,9 +5,10 @@ from .utils import AverageMeter
 from torch.cuda.amp import autocast
 
 def evaluate(config, model, eval_dataloader):
-    preds, labels = predict(config, model, eval_dataloader)
-    r = torch.cov(torch.cat([preds, labels], dim=1)) / torch.std(preds) / torch.std(labels) # r = cov(x,y)/sd(x)/sd(y)
-    r = r.mean()
+    with torch.no_grad():
+        preds, labels = predict(config, model, eval_dataloader)
+        r = torch.cov(torch.cat([preds, labels], dim=1)) / torch.std(preds) / torch.std(labels) # r = cov(x,y)/sd(x)/sd(y)
+        r = r.mean()
     return r.cpu().numpy()
 
 
@@ -36,8 +37,8 @@ def predict(train_config, model, dataloader):
                 pred = model(wav2vec, vit)
 
             # save features in fp32 for sim calculation
-            labels.append(label)
-            preds.append(pred.to(torch.float32))
+            labels.append(label.detach().cpu())
+            preds.append(pred.to(torch.float32).detach().cpu())
 
         # keep Features on GPU
         preds = torch.cat(preds, dim=0)
