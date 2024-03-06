@@ -5,12 +5,14 @@ import numpy as np
 import scipy.ndimage
 from PIL import Image
 from tqdm import tqdm
+import imageio_ffmpeg
 
-input = 'data/face_images'
+input = 'data/raw'
 output_dimension = 256
-output_aligned = 'data/face_images_aligned'
-output_landmarks = 'data/face_images_landmarks'
-min_confidence = 0.0
+output_face = 'data/raw_face'
+output_aligned = 'data/raw_face_aligned'
+output_landmarks = 'data/raw_face_landmarks'
+min_confidence = 0.5
 
 def image_align(img, face_landmarks, output_size=output_dimension,
                 transform_size=4096, enable_padding=True, x_scale=1,
@@ -22,6 +24,7 @@ def image_align(img, face_landmarks, output_size=output_dimension,
     # import PIL.Image
     # import scipy.ndimage
     # print(img.size)
+    img = Image.fromarray(img)
     lm = np.array(face_landmarks)
     lm[:, 0] *= img.size[0]
     lm[:, 1] *= img.size[1]
@@ -78,6 +81,9 @@ def image_align(img, face_landmarks, output_size=output_dimension,
         img = img.crop(crop)
         quad -= crop[0:2]
 
+    crop = img.copy()
+    crop = crop.resize((output_size, output_size), Image.Resampling.LANCZOS)
+
     # Pad.
     pad = (int(np.floor(min(quad[:, 0]))), int(np.floor(min(quad[:, 1]))), int(np.ceil(max(quad[:, 0]))),
            int(np.ceil(max(quad[:, 1]))))
@@ -110,13 +116,13 @@ def image_align(img, face_landmarks, output_size=output_dimension,
                         (quad + 0.5).flatten(), Image.Resampling.BILINEAR)
     out_image = img.resize((output_size, output_size), Image.Resampling.LANCZOS)
 
-    return out_image
+    return crop, out_image
 
 if __name__ == '__main__':
-    def f(folder: Path):
+    def f(file: Path):
         mp_face_mesh = mp.solutions.face_mesh
         face_mesh = mp_face_mesh.FaceMesh(
-                    static_image_mode=True,
+                    static_image_mode=False,
                     refine_landmarks=True,
                     max_num_faces=1,
                     min_detection_confidence=min_confidence,
@@ -127,10 +133,16 @@ if __name__ == '__main__':
         Lips = [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 185, 40, 39, 37, 0, 267, 269, 270, 409, 78, 95, 88,
                 178, 87, 14, 317, 402, 318, 324, 308, 191, 80, 81, 82, 13, 312, 311, 310, 415]
 
+        (Path(output_face) / file.stem).mkdir(parents=True, exist_ok=True)
+        (Path(output_aligned) / file.stem).mkdir(parents=True, exist_ok=True)
         landmarks_fm = []
-        for img_path in sorted(folder.glob('*.jpg')):
-            aligned_img_path = Path(output_aligned) / img_path.parts[-2] / img_path.parts[-1]
-            image = np.array(Image.open(img_path))
+        reader = imageio_ffmpeg.read_frames(file)
+        meta = next(reader)
+        for i, image in enumerate(reader):
+            image = np.array(Image.frombytes('RGB', meta['source_size'], image))
+            crop_img_path = Path(output_face) / file.stem / (str(i).zfill(5) + '.jpg')
+            aligned_img_path = Path(output_aligned) / file.stem / (str(i).zfill(5) + '.jpg')
+            #image = np.array(Image.open(img_path))
 
             # for name, image in images.items():
             # Convert the BGR image to RGB and process it with MediaPipe Face Mesh.
@@ -159,25 +171,27 @@ if __name__ == '__main__':
                 lm_x = lm_left_eye_x + lm_right_eye_x + lm_lips_x
                 lm_y = lm_left_eye_y + lm_right_eye_y + lm_lips_y
                 landmark_lf = np.array([lm_x, lm_y]).T
-                aligned_image = image_align(Image.open(img_path), landmark_lf)
+                crop, aligned_image = image_align(image, landmark_lf)
                 landmark_fm = [[x.x, x.y, x.z] for x in [y for y in face_landmarks.landmark]]
 
 
             landmarks_fm.append(landmark_fm)
+            crop.save(crop_img_path)
             aligned_image.save(aligned_img_path)
 
-        np.save(Path(output_landmarks) / (folder.name + '.npy'), np.array(landmarks_fm))
+        np.save(Path(output_landmarks) / (file.stem + '.npy'), np.array(landmarks_fm))
         face_mesh.close()
 
 
+    Path(output_aligned).mkdir(parents=True, exist_ok=True)
     Path(output_landmarks).mkdir(parents=True, exist_ok=True)
     #debug
     #for folder in Path(input).glob('04595'):
-    folders = list(Path(input).glob('*'))
-    for folder in folders:
-        (Path(output_aligned) / folder.parts[-1]).mkdir(parents=True, exist_ok=True)
+    files = list(Path(input).glob('*.mp4'))
+    #for folder in folders:
+    #    (Path(output_aligned) / folder.parts[-1]).mkdir(parents=True, exist_ok=True)
     #debug
-    f(Path('data/face_images/04595'))
+    #f(Path('data/raw/04595.mp4'))
     with Pool() as p:
-        work = p.imap_unordered(f, folders)
-        list(tqdm(work, total=len(folders)))
+        work = p.imap_unordered(f, files)
+        list(tqdm(work, total=len(files)))
