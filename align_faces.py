@@ -123,7 +123,7 @@ if __name__ == '__main__':
     def f(file: Path):
         mp_face_mesh = mp.solutions.face_mesh
         face_mesh = mp_face_mesh.FaceMesh(
-                    static_image_mode=False,
+                    static_image_mode=True,
                     refine_landmarks=True,
                     max_num_faces=1,
                     min_detection_confidence=min_confidence,
