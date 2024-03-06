@@ -147,7 +147,9 @@ if __name__ == '__main__':
             results = face_mesh.process(image)
             if results is None or not results.multi_face_landmarks:
                 print(f'No face mesh detected for {aligned_img_path}')
+                continue
                 aligned_image = Image.fromarray(np.zeros((output_dimension, output_dimension, 3), dtype=np.uint8))
+                crop = aligned_image
                 #landmark_fm = np.zeros((478, 3), dtype=np.float64)
             else:
                 face_landmarks = results.multi_face_landmarks[0]
