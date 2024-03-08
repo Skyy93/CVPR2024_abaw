@@ -37,6 +37,7 @@ au_det = ort.InferenceSession('au_det.onnx', providers=['CPUExecutionProvider'])
 au_reg = ort.InferenceSession('au_reg.onnx', providers=['CPUExecutionProvider'])
 fer = ort.InferenceSession('fer.onnx', providers=['CPUExecutionProvider'])
 
+
 def method(folder):
     images_preprocessed = []
     for file in sorted(folder.glob('*.jpg')):
@@ -53,16 +54,29 @@ def method(folder):
     if len(images_preprocessed) == 0:
         return
 
-    images_preprocessed_encoded = [au_enc.run(['feature'], {'image': np.expand_dims(x, axis=0)}) for x in images_preprocessed]
+    images_preprocessed_encoded = [au_enc.run(['feature'], {'image': np.expand_dims(x, axis=0)})
+                                   for x in
+                                   images_preprocessed]
 
-    preds = [[au_det.run(['au_presence'], {'feature': np.expand_dims(np.squeeze(x), axis=0)}) for x in images_preprocessed_encoded],
-             [au_reg.run(['au_intensity'], {'feature': np.expand_dims(np.squeeze(x), axis=0)}) for x in images_preprocessed_encoded],
-             [fer.run(['FEs', 'onnx::Gemm_204'], {'image': np.expand_dims(x, axis=0)}) for x in images_preprocessed]]
+    preds = [[au_det.run(['au_presence'], {'feature': np.expand_dims(np.squeeze(x), axis=0)})
+              for x in images_preprocessed_encoded],
+             [au_reg.run(['au_intensity'], {'feature': np.expand_dims(np.squeeze(x), axis=0)})
+              for x in images_preprocessed_encoded],
+             [fer.run(['FEs', 'onnx::Gemm_204'], {'image': np.expand_dims(x, axis=0)})
+              for x in images_preprocessed]]
 
-    preds, fer_feats = np.concatenate(list((*preds[:2], [[[y]] for x in preds[2] for y in x[0]])), axis=-1).squeeze(), np.concatenate([[y] for x in preds[2] for y in x[1]])
-    df = pd.DataFrame(preds, columns=labels)
+    preds, fer_feats = np.concatenate(list((*preds[:2], [[[y]] for x in preds[2] for y in x[0]])),
+                                      axis=-1).squeeze(), np.concatenate([[y] for x in preds[2] for y in x[1]])
+
+    try:
+        df = pd.DataFrame(preds, columns=labels)
+    except ValueError:
+        print(folder)
+        df = pd.DataFrame([preds], columns=labels)
+
     df['fer_feats'] = [x for x in fer_feats]
     df.to_pickle(Path(output) / (folder.name + '.xz'))
 
+
 folders = list(Path(input).glob('*'))
-process_map(method, folders, max_workers=int(os.cpu_count()/2), chunksize=1)
+process_map(method, folders, max_workers=int(os.cpu_count() / 2), chunksize=1)
