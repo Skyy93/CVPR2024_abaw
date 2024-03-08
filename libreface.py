@@ -65,4 +65,4 @@ def method(folder):
     df.to_pickle(Path(output) / (folder.name + '.xz'))
 
 folders = list(Path(input).glob('*'))
-process_map(method, folders, max_workers=int(os.cpu_count()/2))
+process_map(method, folders, max_workers=int(os.cpu_count()/2), chunksize=1)
