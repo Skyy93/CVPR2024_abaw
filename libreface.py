@@ -50,16 +50,15 @@ def method(folder):
         image = image.transpose((2, 0, 1))
         images_preprocessed.append(image)
 
-images_preprocessed_encoded = [au_enc.run(['feature'], {'image': np.expand_dims(x, axis=0)}) for x in images_preprocessed]
+    if len(images_preprocessed) == 0:
+        return
+
+    images_preprocessed_encoded = [au_enc.run(['feature'], {'image': np.expand_dims(x, axis=0)}) for x in images_preprocessed]
 
     preds = [[au_det.run(['au_presence'], {'feature': np.expand_dims(np.squeeze(x), axis=0)}) for x in images_preprocessed_encoded],
              [au_reg.run(['au_intensity'], {'feature': np.expand_dims(np.squeeze(x), axis=0)}) for x in images_preprocessed_encoded],
              [fer.run(['FEs', 'onnx::Gemm_204'], {'image': np.expand_dims(x, axis=0)}) for x in images_preprocessed]]
 
-preds, fer_feats = np.concatenate(list((*preds[:2], [[[y]] for x in preds[2] for y in x[0]])), axis=-1).squeeze(), np.concatenate([[y] for x in preds[2] for y in x[1]])
-df = pd.DataFrame(preds, columns=labels)
-df['fer_feats'] = [x for x in fer_feats]
-print('bla')
     preds, fer_feats = np.concatenate(list((*preds[:2], [[[y]] for x in preds[2] for y in x[0]])), axis=-1).squeeze(), np.concatenate([[y] for x in preds[2] for y in x[1]])
     df = pd.DataFrame(preds, columns=labels)
     df['fer_feats'] = [x for x in fer_feats]
