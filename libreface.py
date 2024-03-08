@@ -52,6 +52,7 @@ def method(folder):
         images_preprocessed.append(image)
 
     if len(images_preprocessed) == 0:
+        print(f'empty: {folder}')
         return
 
     images_preprocessed_encoded = [au_enc.run(['feature'], {'image': np.expand_dims(x, axis=0)})
@@ -71,7 +72,7 @@ def method(folder):
     try:
         df = pd.DataFrame(preds, columns=labels)
     except ValueError:
-        print(folder)
+        print(f'one image: {folder}')
         df = pd.DataFrame([preds], columns=labels)
 
     df['fer_feats'] = [x for x in fer_feats]
