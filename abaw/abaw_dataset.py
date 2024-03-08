@@ -48,7 +48,7 @@ class HumeDatasetTrain(Dataset):
                 vision = torch.mean(torch.tensor(pickle.load(file)), dim=0)
         else:
             vision = self.process_images(index)
-
+        
         if self.audio_model == 'linear':
             wav2vec2_file_path = f"{self.data_folder}wav2vec2/{str(int(row['Filename'])).zfill(5)}.pkl"
             with open(wav2vec2_file_path, 'rb') as file:
@@ -66,24 +66,23 @@ class HumeDatasetTrain(Dataset):
             img_files = sorted(os.listdir(img_folder_path))
             selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
             images = []
-            asdf # TODO remove later
             for idx in selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
                 img = Image.open(img_path).convert('RGB')
                 images.append(self.transform(image=np.array(img))['image'])
-
             # Add black images if there are less than 50 images
             while len(images) < 50:
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
 
             return torch.stack(images)
-        except:
+        except Exception as e:
             images = []
+            print(e)
             while len(images) < 1: # correct when face images are there
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
-            #print(f"No image found for index: {index}")
+            print(f"No image found for index: {index}")
             return torch.stack(images)
 
     def process_audio(self, filename):
@@ -156,7 +155,6 @@ class HumeDatasetEval(Dataset):
             img_files = sorted(os.listdir(img_folder_path))
             selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
             images = []
-            asdf # TODO remove later
             for idx in selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
                 img = Image.open(img_path).convert('RGB')
