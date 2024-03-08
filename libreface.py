@@ -80,4 +80,4 @@ def method(folder):
 
 
 folders = list(Path(input).glob('*'))
-process_map(method, folders, max_workers=int(os.cpu_count() / 2), chunksize=1)
+process_map(method, folders, max_workers=int(os.cpu_count() / 2), chunksize=2)
