@@ -37,7 +37,7 @@ class TrainingConfiguration:
     gpu_ids: tuple = (0,)  # GPU ids for training
 
     # Eval
-    batch_size_eval: int = 32
+    batch_size_eval: int = 64
     eval_every_n_epoch: int = 1  # eval every n Epoch
 
     # Optimizer 
