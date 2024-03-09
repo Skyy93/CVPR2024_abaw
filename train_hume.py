@@ -26,7 +26,7 @@ class TrainingConfiguration:
     '''
 
     # Model
-    model: tuple = ('timm/vit_base_patch14_dinov2.lvd142m', 'hf-audio/wav2vec2-bert-CV16-en') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
+    model: tuple = ('timm/convnext_base.fb_in22k_ft_in1k', 'hf-audio/wav2vec2-bert-CV16-en') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
 
     # Training 
     mixed_precision: bool = True
