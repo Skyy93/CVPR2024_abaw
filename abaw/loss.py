@@ -11,8 +11,8 @@ class MSECCC(nn.Module):
         self.loss_function = torch.nn.MSELoss()
 
     def forward(self, features, labels):
-        return (self.loss_function(features, labels) + 2 * torch.cov(features, labels) / (
-                    features.var() + labels.var() + (features.mean() - labels.mean()) ** 2)) / 2
+        return (self.loss_function(features, labels) + (2 * torch.cov(torch.cat([features, labels], dim=1)) / (
+                    features.var() + labels.var() + (features.mean() - labels.mean()) ** 2)) / 2).mean()
 
 
 class CCC(nn.Module):

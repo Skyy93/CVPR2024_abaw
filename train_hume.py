@@ -26,18 +26,18 @@ class TrainingConfiguration:
     '''
 
     # Model
-    model: tuple = ('timm/vit_base_patch14_dinov2.lvd142m', 'hf-audio/wav2vec2-bert-CV16-en') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
+    model: tuple = ('timm/convnext_base.fb_in22k_ft_in1k', 'hf-audio/wav2vec2-bert-CV16-en') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
 
     # Training 
     mixed_precision: bool = True
     seed = 1
     epochs: int = 10
-    batch_size: int = 16  # keep in mind real_batch_size = 2 * batch_size
+    batch_size: int = 64  # keep in mind real_batch_size = 2 * batch_size
     verbose: bool = True
     gpu_ids: tuple = (0,)  # GPU ids for training
 
     # Eval
-    batch_size_eval: int = 16
+    batch_size_eval: int = 64
     eval_every_n_epoch: int = 1  # eval every n Epoch
 
     # Optimizer 
