@@ -15,11 +15,12 @@ from albumentations.pytorch import ToTensorV2
 from PIL import Image
 import os
 import soundfile as sf
+import abaw.utils
 
 cv2.setNumThreads(2)
 
 
-class HumeDatasetTrain(Dataset):
+class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
 
     def __init__(self, data_folder, label_file=None, model=None):
         super().__init__()
@@ -58,7 +59,7 @@ class HumeDatasetTrain(Dataset):
         labels = torch.tensor(
             row[['Admiration', 'Amusement', 'Determination', 'Empathic Pain', 'Excitement', 'Joy']].values,
             dtype=torch.float)
-        return audio, vision, labels
+        return audio, vision, labels, self.avg
 
     def process_images(self, index):
         try:
@@ -68,18 +69,19 @@ class HumeDatasetTrain(Dataset):
             images = []
             for idx in selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
-                img = Image.open(img_path).convert('RGB')
+                img = Image.open(img_path).convert('RGB')#.resize((160, 160))
                 images.append(self.transform(image=np.array(img))['image'])
+            self.update(1-len(images)/50)
             # Add black images if there are less than 50 images
             while len(images) < 50:
-                black_img = Image.new('RGB', (160, 160))
+                black_img = Image.new('RGB', (224, 224))
                 images.append(self.transform(image=np.array(black_img))['image'])
 
             return torch.stack(images)
         except Exception as e:
             images = []
             print(e)
-            while len(images) < 1: # correct when face images are there
+            while len(images) < 50: # correct when face images are there
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
             print(f"No image found for index: {index}")
@@ -100,13 +102,13 @@ class HumeDatasetTrain(Dataset):
         return len(self.label_file)
 
     def collate_fn(self, batch):
-        audio_data, vision_data, labels_data = zip(*batch)
+        audio_data, vision_data, labels_data, avg = zip(*batch)
         audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", max_length=1024, truncation=True)
         vision_stacked = torch.stack(vision_data)
     
         labels_stacked = torch.stack(labels_data)
     
-        return audio_data_padded, vision_stacked, labels_stacked
+        return audio_data_padded, vision_stacked, labels_stacked, np.mean(avg)
 
 
 class HumeDatasetEval(Dataset):
@@ -157,7 +159,7 @@ class HumeDatasetEval(Dataset):
             images = []
             for idx in selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
-                img = Image.open(img_path).convert('RGB')
+                img = Image.open(img_path).convert('RGB')#.resize((160, 160))
                 images.append(self.transform(image=np.array(img))['image'])
 
             # Add black images if there are less than 50 images
