@@ -65,6 +65,7 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
             img_files = sorted(os.listdir(img_folder_path))
+            img_files.remove('Thumbs.db')
             selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
             images = []
             for idx in selected_indices:
@@ -155,6 +156,7 @@ class HumeDatasetEval(Dataset):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
             img_files = sorted(os.listdir(img_folder_path))
+            img_files.remove('Thumbs.db')
             selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
             images = []
             for idx in selected_indices:
