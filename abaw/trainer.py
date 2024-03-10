@@ -11,6 +11,8 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
     model.train()
     
     losses = AverageMeter()
+
+    blackimgs = AverageMeter()
     
     # wait before starting progress bar
     time.sleep(0.1)
@@ -26,8 +28,8 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
         bar = dataloader
     
     # for loop over one epoch
-    for audio, vision, label in bar:
-        
+    for audio, vision, label, avg in bar:
+        blackimgs.update(avg)
         if scaler:
             with autocast():
             
@@ -96,7 +98,8 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
             
             monitor = {"loss": "{:.4f}".format(loss.item()),
                        "loss_avg": "{:.4f}".format(losses.avg),
-                       "lr" : "{:.6f}".format(optimizer.param_groups[0]['lr'])}
+                       "lr" : "{:.6f}".format(optimizer.param_groups[0]['lr']),
+                       "blackimgs": "{:.4f}".format(blackimgs.avg)}
             
             bar.set_postfix(ordered_dict=monitor)
         
