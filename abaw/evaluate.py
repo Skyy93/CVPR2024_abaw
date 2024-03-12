@@ -7,7 +7,7 @@ from torch.cuda.amp import autocast
 def evaluate(config, model, eval_dataloader):
     with torch.no_grad():
         preds, labels = predict(config, model, eval_dataloader)
-        r = torch.cov(torch.cat([preds, labels], dim=1)) / torch.std(preds) / torch.std(labels) # r = cov(x,y)/sd(x)/sd(y)
+        r = torch.cov(torch.cat([preds, labels], dim=1)) / (torch.std(preds) * torch.std(labels)) # r = cov(x,y)/sd(x)/sd(y)
         r = r.mean()
     return r.cpu().numpy()
 

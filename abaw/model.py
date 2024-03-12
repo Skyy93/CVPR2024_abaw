@@ -4,6 +4,7 @@ import numpy as np
 import torch.nn as nn
 from transformers import Wav2Vec2BertModel
 from abaw.mamba import Mamba
+import math
 
 class Model(nn.Module):
 
@@ -37,10 +38,10 @@ class Model(nn.Module):
                 audio_output = self.audio_model(**audio).last_hidden_state
                 pooled_audio = audio_output.mean(1)
             
-
             pooled_vision = self.pooling_transformer(vision_outputs)
             pooled_vision = pooled_vision.mean(1)  # Mean pooling across the sequence dimension
             fusion_input = torch.cat([pooled_vision, pooled_audio], dim=1)
             pred = self.fusion_model(fusion_input)
 
             return pred
+

@@ -34,7 +34,7 @@ class TrainingConfiguration:
     epochs: int = 10
     batch_size: int = 64  # keep in mind real_batch_size = 2 * batch_size
     verbose: bool = True
-    gpu_ids: tuple = (0,)  # GPU ids for training
+    gpu_ids: tuple = (0, )  # GPU ids for training
 
     # Eval
     batch_size_eval: int = 64
@@ -65,7 +65,7 @@ class TrainingConfiguration:
     checkpoint_start = None
 
     # set num_workers to 0 if on Windows
-    num_workers: int = 0 if os.name == 'nt' else 4
+    num_workers: int = 0 if os.name == 'nt' else 16
 
     # train on GPU if available
     device: str = 'cuda' if torch.cuda.is_available() else 'cpu'

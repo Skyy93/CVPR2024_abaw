@@ -27,7 +27,7 @@ class HumeDatasetTrain(Dataset):
         self.label_file = pd.read_csv(label_file)
         self.vision_model = model[0]
         self.audio_model = model[1]
-
+        self.length_faces = 16
         if self.vision_model != 'linear':
             self.data_config = timm.data.resolve_model_data_config(self.vision_model)
             self.transform = A.Compose([
@@ -64,14 +64,14 @@ class HumeDatasetTrain(Dataset):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
             img_files = sorted(os.listdir(img_folder_path))
-            selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
+            selected_indices = np.linspace(0, len(img_files) - 1, min(self.length_faces, len(img_files)), dtype=int)
             images = []
             for idx in selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
                 img = Image.open(img_path).convert('RGB')
                 images.append(self.transform(image=np.array(img))['image'])
-            # Add black images if there are less than 50 images
-            while len(images) < 50:
+            # Add black images if there are less than x images
+            while len(images) < self.length_faces:
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
 
@@ -117,7 +117,7 @@ class HumeDatasetEval(Dataset):
         self.label_file = pd.read_csv(label_file)
         self.vision_model = model[0]
         self.audio_model = model[1]
-
+        self.length_faces = 16
         if self.vision_model != 'linear':
             self.data_config = timm.data.resolve_model_data_config(self.vision_model)
             self.transform = A.Compose([
@@ -153,15 +153,15 @@ class HumeDatasetEval(Dataset):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
             img_files = sorted(os.listdir(img_folder_path))
-            selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
+            selected_indices = np.linspace(0, len(img_files) - 1, min(self.length_faces, len(img_files)), dtype=int)
             images = []
             for idx in selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
                 img = Image.open(img_path).convert('RGB')
                 images.append(self.transform(image=np.array(img))['image'])
 
-            # Add black images if there are less than 50 images
-            while len(images) < 50:
+            # Add black images if there are less than x images
+            while len(images) < self.length_faces:
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
 
