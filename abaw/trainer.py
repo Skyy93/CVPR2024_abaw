@@ -4,6 +4,7 @@ from tqdm import tqdm
 from .utils import AverageMeter
 from torch.cuda.amp import autocast
 import torch.nn.functional as F
+from torchmetrics.regression import PearsonCorrCoef
 
 def train(train_config, model, dataloader, loss_function, optimizer, scheduler=None, scaler=None):
 
@@ -13,6 +14,8 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
     losses = AverageMeter()
 
     blackimgs = AverageMeter()
+
+    corr = PearsonCorrCoef(num_outputs=6).to(train_config.device)
     
     # wait before starting progress bar
     time.sleep(0.1)
@@ -29,7 +32,6 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
     
     # for loop over one epoch
     for audio, vision, label, avg in bar:
-        blackimgs.update(avg)
         if scaler:
             with autocast():
             
@@ -95,11 +97,13 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
         
         
         if train_config.verbose:
-            
+            blackimgs.update(avg)
+            corr.update(features, label)
             monitor = {"loss": "{:.4f}".format(loss.item()),
                        "loss_avg": "{:.4f}".format(losses.avg),
                        "lr" : "{:.6f}".format(optimizer.param_groups[0]['lr']),
-                       "blackimgs": "{:.4f}".format(blackimgs.avg)}
+                       "blackimgs": "{:.4f}".format(blackimgs.avg),
+                       "corr": "{:.4f}".format(corr.compute().cpu().numpy().mean())}
             
             bar.set_postfix(ordered_dict=monitor)
         
