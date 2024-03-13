@@ -16,6 +16,7 @@ from PIL import Image
 import os
 import soundfile as sf
 import abaw.utils
+from torch.nn.utils.rnn import pack_padded_sequence, pack_sequence
 
 cv2.setNumThreads(2)
 
@@ -65,16 +66,17 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
             img_files = sorted(os.listdir(img_folder_path))
-            img_files.remove('Thumbs.db')
-            selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
+            if 'Thumbs.db' in img_files:
+                img_files.remove('Thumbs.db')
+            #selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
             images = []
-            for idx in selected_indices:
+            for idx in range(len(img_files[:12*30])):#selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
                 img = Image.open(img_path).convert('RGB')#.resize((160, 160))
                 images.append(self.transform(image=np.array(img))['image'])
-            self.update(1-len(images)/50)
+            #self.update(1-len(images)/50)
             # Add black images if there are less than 50 images
-            while len(images) < 50:
+            while len(images) < 1:
                 black_img = Image.new('RGB', (224, 224))
                 images.append(self.transform(image=np.array(black_img))['image'])
 
@@ -82,7 +84,7 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         except Exception as e:
             images = []
             print(e)
-            while len(images) < 50: # correct when face images are there
+            while len(images) < 1: # correct when face images are there
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
             print(f"No image found for index: {index}")
@@ -92,11 +94,14 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.mp3"
         try:
             audio_data, sr = sf.read(audio_file_path)
+            if sr != 16000:
+                print(audio_file_path)
+                raise ValueError
         except Exception as e:
             print(f"Error processing audio file {audio_file_path}: {e}")
             audio_data = np.zeros(128, dtype=np.float32)
 
-        return audio_data
+        return audio_data[:12*sr]
 
 
     def __len__(self):
@@ -104,12 +109,15 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
 
     def collate_fn(self, batch):
         audio_data, vision_data, labels_data, avg = zip(*batch)
-        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", max_length=1024, truncation=True)
-        vision_stacked = torch.stack(vision_data)
+        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", truncation=True, max_length=12*16000)
+        lengths, permutation = audio_data_padded['attention_mask'].sum(axis=1).sort(descending=True)
+        audio_packed = pack_padded_sequence(audio_data_padded['input_features'][permutation], lengths.cpu().numpy(), batch_first=True)
+        # assumption: audio lengths match vision lengths; it does not hold.
+        vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
     
-        labels_stacked = torch.stack(labels_data)
+        labels_stacked = torch.stack([labels_data[x] for x in permutation])
     
-        return audio_data_padded, vision_stacked, labels_stacked, np.mean(avg)
+        return audio_packed, vision_packed, labels_stacked, np.mean(avg)
 
 
 class HumeDatasetEval(Dataset):
@@ -156,16 +164,17 @@ class HumeDatasetEval(Dataset):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
             img_files = sorted(os.listdir(img_folder_path))
-            img_files.remove('Thumbs.db')
-            selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
+            if 'Thumbs.db' in img_files:
+                img_files.remove('Thumbs.db')
+            #selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
             images = []
-            for idx in selected_indices:
+            for idx in range(len(img_files[:12*30])):#selected_indices:
                 img_path = os.path.join(img_folder_path, img_files[idx])
                 img = Image.open(img_path).convert('RGB')#.resize((160, 160))
                 images.append(self.transform(image=np.array(img))['image'])
 
             # Add black images if there are less than 50 images
-            while len(images) < 50:
+            while len(images) < 1:
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
 
@@ -182,20 +191,28 @@ class HumeDatasetEval(Dataset):
         audio_file_path = f"{self.data_folder}audio/{str(int(filename)).zfill(5)}.mp3"
         try:
             audio_data, sr = sf.read(audio_file_path)
+            if sr != 16000:
+                print(audio_file_path)
+                raise ValueError
         except Exception as e:
             print(f"Error processing audio file {audio_file_path}: {e}")
             audio_data = np.zeros((128,), dtype=np.float32)
 
-        return audio_data
+        return audio_data[:12*sr]
 
     def __len__(self):
         return len(self.label_file)
 
     def collate_fn(self, batch):
         audio_data, vision_data, labels_data = zip(*batch)
-        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", max_length=1024, truncation=True)
-        vision_stacked = torch.stack(vision_data)
-    
-        labels_stacked = torch.stack(labels_data)
-    
-        return audio_data_padded, vision_stacked, labels_stacked
+        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt",
+                                           truncation=True, max_length=12 * 16000)
+        lengths, permutation = audio_data_padded['attention_mask'].sum(axis=1).sort(descending=True)
+        audio_packed = pack_padded_sequence(audio_data_padded['input_features'][permutation], lengths.cpu().numpy(),
+                                            batch_first=True)
+        # assumption: audio lengths match vision lengths; it does not hold.
+        vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
+
+        labels_stacked = torch.stack([labels_data[x] for x in permutation])
+
+        return audio_packed, vision_packed, labels_stacked
