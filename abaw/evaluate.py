@@ -3,14 +3,15 @@ import torch
 from tqdm import tqdm
 from .utils import AverageMeter
 from torch.cuda.amp import autocast
+from torchmetrics.regression import PearsonCorrCoef
 
 def evaluate(config, model, eval_dataloader):
     with torch.no_grad():
         preds, labels = predict(config, model, eval_dataloader)
-        r = torch.cov(torch.cat([preds, labels], dim=1)) / (torch.std(preds) * torch.std(labels)) # r = cov(x,y)/sd(x)/sd(y)
+        r = PearsonCorrCoef(num_outputs=6)
+        r = r(preds, labels)
         r = r.mean()
     return r.cpu().numpy()
-
 
 def predict(train_config, model, dataloader):
     model.eval()
