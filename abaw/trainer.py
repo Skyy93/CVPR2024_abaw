@@ -101,8 +101,8 @@ def train(train_config, model, dataloader, loss_function, optimizer, scheduler=N
             corr.update(features, label)
             monitor = {"loss": "{:.4f}".format(loss.item()),
                        "loss_avg": "{:.4f}".format(losses.avg),
-                       "lr" : "{:.6f}".format(optimizer.param_groups[0]['lr']),
-                       "blackimgs": "{:.4f}".format(blackimgs.avg),
+                       "lr": "{:.6f}".format(optimizer.param_groups[0]['lr']),
+                       "cutoff": "{:.4f}".format(blackimgs.avg),
                        "corr": "{:.4f}".format(corr.compute().cpu().numpy().mean())}
             
             bar.set_postfix(ordered_dict=monitor)

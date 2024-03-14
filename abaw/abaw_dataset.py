@@ -100,7 +100,7 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         except Exception as e:
             print(f"Error processing audio file {audio_file_path}: {e}")
             audio_data = np.zeros(128, dtype=np.float32)
-
+        self.update(1 - len(audio_data[:12*sr])/len(audio_data))
         return audio_data[:12*sr]
 
 
