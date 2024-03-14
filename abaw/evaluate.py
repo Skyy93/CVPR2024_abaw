@@ -24,7 +24,7 @@ def predict(train_config, model, dataloader):
         bar = tqdm(dataloader, total=len(dataloader))
     else:
         bar = dataloader
-
+    r = PearsonCorrCoef(num_outputs=6).cuda()
     preds = []
     labels = []
     with torch.no_grad():
@@ -41,7 +41,8 @@ def predict(train_config, model, dataloader):
             # save features in fp32 for sim calculation
             labels.append(label.detach().cpu())
             preds.append(pred.to(torch.float32).detach().cpu())
-
+            r.update(pred, label)
+            bar.set_postfix(ordered_dict={'corr':f'{r.compute().mean().cpu().numpy():.4f}'})
         # keep Features on GPU
         preds = torch.cat(preds, dim=0)
         labels = torch.cat(labels, dim=0)

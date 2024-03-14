@@ -26,7 +26,7 @@ class TrainingConfiguration:
     '''
 
     # Model
-    model: tuple = ('timm/convnext_base.fb_in22k_ft_in1k', 'hf-audio/wav2vec2-bert-CV16-en') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
+    model: tuple = ('timm/convnext_base.fb_in22k_ft_in1k', 'facebook/wav2vec2-large-960h') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
 
     # Training 
     mixed_precision: bool = True
@@ -131,6 +131,7 @@ if __name__ == '__main__':
     # Train
     train_dataset = HumeDatasetTrain(data_folder=config.data_folder,
                                      label_file='data/train_split.csv',
+                                     #label_file='data/valid_split.csv',
                                      model=config.model,
                                      )
 
@@ -144,6 +145,7 @@ if __name__ == '__main__':
     # Reference Satellite Images
     eval_dataset = HumeDatasetEval(data_folder=config.data_folder,
                                    label_file='data/valid_split.csv',
+                                   #label_file='data/train_split.csv',
                                    model=config.model,
                                    )
 

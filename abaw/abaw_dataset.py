@@ -106,12 +106,13 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
 
     def __len__(self):
         return len(self.label_file)
+        #return int(2*len(self.label_file)/3)
 
     def collate_fn(self, batch):
         audio_data, vision_data, labels_data, avg = zip(*batch)
-        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", truncation=True, max_length=12*16000)
+        audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt", truncation=True, max_length=12*16000, return_attention_mask=True)
         lengths, permutation = audio_data_padded['attention_mask'].sum(axis=1).sort(descending=True)
-        audio_packed = pack_padded_sequence(audio_data_padded['input_features'][permutation], lengths.cpu().numpy(), batch_first=True)
+        audio_packed = pack_padded_sequence(audio_data_padded['input_values'][permutation], lengths.cpu().numpy(), batch_first=True)  # 'input_features' for w2v2-bert
         # assumption: audio lengths match vision lengths; it does not hold.
         vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
     
@@ -140,6 +141,7 @@ class HumeDatasetEval(Dataset):
             self.processor = AutoProcessor.from_pretrained(self.audio_model)
 
     def __getitem__(self, index):
+        #row = self.label_file.iloc[int(2*len(self.label_file)/3)+index]
         row = self.label_file.iloc[index]
 
         if self.vision_model == 'linear':
@@ -202,13 +204,14 @@ class HumeDatasetEval(Dataset):
 
     def __len__(self):
         return len(self.label_file)
+        #return int(len(self.label_file)/3)
 
     def collate_fn(self, batch):
         audio_data, vision_data, labels_data = zip(*batch)
         audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt",
-                                           truncation=True, max_length=12 * 16000)
+                                           truncation=True, max_length=12 * 16000, return_attention_mask=True)
         lengths, permutation = audio_data_padded['attention_mask'].sum(axis=1).sort(descending=True)
-        audio_packed = pack_padded_sequence(audio_data_padded['input_features'][permutation], lengths.cpu().numpy(),
+        audio_packed = pack_padded_sequence(audio_data_padded['input_values'][permutation], lengths.cpu().numpy(),
                                             batch_first=True)
         # assumption: audio lengths match vision lengths; it does not hold.
         vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
