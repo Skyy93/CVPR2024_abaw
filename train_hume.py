@@ -12,7 +12,7 @@ from abaw.transforms import get_transforms_train, get_transforms_val
 from abaw.utils import setup_system, Logger
 from abaw.trainer import train
 from abaw.evaluate import evaluate
-from abaw.loss import MSE, CCC, MSECCC
+from abaw.loss import MSE, CCC, MSECCC, CORR
 from abaw.model import Model
 from transformers import get_constant_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup, \
     get_cosine_schedule_with_warmup
@@ -46,7 +46,7 @@ class TrainingConfiguration:
     grad_checkpointing: bool = False  # Gradient Checkpointing
 
     # Loss
-    loss: str = 'MSE'  # MSE, CCC, MSECCC choice wise
+    loss: str = 'CORR'  # MSE, CCC, MSECCC choice wise
 
     # Learning Rate
     lr: float = 0.001  # 1 * 10^-4 for ViT | 1 * 10^-1 for CNN
@@ -168,6 +168,8 @@ if __name__ == '__main__':
         loss_function = CCC()
     elif config.loss == 'MSECCC':
         loss_function = MSECCC()
+    elif config.loss == 'CORR':
+        loss_function = CORR()
     else:
         raise ReferenceError("Loss function does not exist.")
 

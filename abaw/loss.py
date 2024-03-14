@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed.nn
-
+from torchmetrics.functional.regression import pearson_corrcoef
 
 class MSECCC(nn.Module):
 
@@ -34,3 +34,11 @@ class MSE(nn.Module):
 
     def forward(self, features, labels):
         return self.loss_function(features, labels)
+
+class CORR(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.loss_function = pearson_corrcoef
+
+    def forward(self, predictions, labels):
+        return (1 - self.loss_function(predictions, labels)).mean()
