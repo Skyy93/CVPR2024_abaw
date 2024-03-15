@@ -41,4 +41,4 @@ class CORR(nn.Module):
         self.loss_function = pearson_corrcoef
 
     def forward(self, predictions, labels):
-        return (1 - torch.nan_to_num(self.loss_function(predictions, labels))).mean()
+        return (1 - torch.nan_to_num(self.loss_function(predictions, labels), nan=-1.0)).mean()

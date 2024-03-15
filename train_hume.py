@@ -26,7 +26,7 @@ class TrainingConfiguration:
     '''
 
     # Model
-    model: tuple = ('timm/convnext_base.fb_in22k_ft_in1k', 'facebook/wav2vec2-large-960h') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
+    model: tuple = ('timm/convnext_base.fb_in22k_ft_in1k', 'audeering/wav2vec2-large-robust-12-ft-emotion-msp-dim')#'facebook/wav2vec2-large-960h') # ('facebook/dinov2-small', 'hf-audio/wav2vec2-bert-CV16-en') or ('linear', 'linear')
 
     # Training 
     mixed_precision: bool = True
@@ -46,7 +46,7 @@ class TrainingConfiguration:
     grad_checkpointing: bool = False  # Gradient Checkpointing
 
     # Loss
-    loss: str = 'CORR'  # MSE, CCC, MSECCC choice wise
+    loss: str = 'MSE'  # MSE, CCC, MSECCC choice wise
 
     # Learning Rate
     lr: float = 0.001  # 1 * 10^-4 for ViT | 1 * 10^-1 for CNN
