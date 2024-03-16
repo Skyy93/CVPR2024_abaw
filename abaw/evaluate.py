@@ -11,7 +11,7 @@ def evaluate(config, model, eval_dataloader):
         r = PearsonCorrCoef(num_outputs=6)
         r = r(preds, labels)
         r = r.mean()
-    return r.cpu().numpy()
+    return r.cpu().numpy(), preds 
 
 
 def predict(train_config, model, dataloader):

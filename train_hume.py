@@ -19,6 +19,9 @@ from transformers import get_constant_schedule_with_warmup, get_polynomial_decay
 import pickle
 
 
+##### VISION new STANDARD 1e-4
+
+
 @dataclass
 class TrainingConfiguration:
     '''
@@ -261,7 +264,7 @@ if __name__ == '__main__':
             model.eval()
             print("\n{}[{}]{}".format(30 * "-", "Evaluate", 30 * "-"))
 
-            p1 = evaluate(config=config,
+            p1, _ = evaluate(config=config,
                           model=model,
                           eval_dataloader=eval_dataloader)
 
