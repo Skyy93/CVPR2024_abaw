@@ -42,7 +42,7 @@ def predict(train_config, model, dataloader):
             labels.append(label.detach().cpu())
             preds.append(pred.to(torch.float32).detach().cpu())
             r.update(pred, label)
-            bar.set_postfix(ordered_dict={'corr':f'{r.compute().mean().cpu().numpy():.4f}'})
+            bar.set_postfix(ordered_dict={'corr': f'{r.compute().mean().cpu().numpy():.4f}'})
         # keep Features on GPU
         preds = torch.cat(preds, dim=0)
         labels = torch.cat(labels, dim=0)

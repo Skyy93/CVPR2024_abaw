@@ -1,4 +1,5 @@
 import cv2
+import imageio_ffmpeg
 import numpy as np
 from torch.utils.data import Dataset
 import pandas as pd
@@ -17,6 +18,7 @@ import os
 import soundfile as sf
 import abaw.utils
 from torch.nn.utils.rnn import pack_padded_sequence, pack_sequence
+from pathlib import Path
 
 cv2.setNumThreads(2)
 
@@ -40,6 +42,7 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
 
         if self.audio_model != 'linear':
             self.processor = AutoProcessor.from_pretrained(self.audio_model)
+            self.processor_vision = AutoProcessor.from_pretrained('google/vit-base-patch16-224-in21k')
 
     def __getitem__(self, index):
         row = self.label_file.iloc[index]
@@ -65,15 +68,18 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
     def process_images(self, index):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
-            img_files = sorted(os.listdir(img_folder_path))
+            img_files = sorted(os.listdir(img_folder_path), key=lambda x: x.zfill(15))
+            meta = next(imageio_ffmpeg.read_frames(f"{self.data_folder}raw/{str(int(index)).zfill(5)}.mp4"))
+            fps_est = len(img_files)/meta['duration']
             if 'Thumbs.db' in img_files:
                 img_files.remove('Thumbs.db')
-            #selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
+            selected_indices = np.linspace(0, len(img_files) - 1, min(12*5, max(1, round(5/fps_est*len(img_files)))), dtype=int)
             images = []
-            for idx in range(len(img_files[:12*30])):#selected_indices:
+            for idx in selected_indices:#range(len(img_files[:12*5])):
                 img_path = os.path.join(img_folder_path, img_files[idx])
-                img = Image.open(img_path).convert('RGB')#.resize((160, 160))
-                images.append(self.transform(image=np.array(img))['image'])
+                img = np.array(Image.open(img_path))#.convert('RGB')#.resize((160, 160))
+                #images.append(self.transform(image=np.array(img))['image'])
+                images.append(torch.tensor(img))
             #self.update(1-len(images)/50)
             # Add black images if there are less than 50 images
             while len(images) < 1:
@@ -114,6 +120,7 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         lengths, permutation = audio_data_padded['attention_mask'].sum(axis=1).sort(descending=True)
         audio_packed = pack_padded_sequence(audio_data_padded['input_values'][permutation], lengths.cpu().numpy(), batch_first=True)  # 'input_features' for w2v2-bert
         # assumption: audio lengths match vision lengths; it does not hold.
+        vision_data = [self.processor_vision(x, return_tensors='pt')['pixel_values'] for x in vision_data]
         vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
     
         labels_stacked = torch.stack([labels_data[x] for x in permutation])
@@ -139,6 +146,7 @@ class HumeDatasetEval(Dataset):
             ])
         if self.audio_model != 'linear':
             self.processor = AutoProcessor.from_pretrained(self.audio_model)
+            self.processor_vision = AutoProcessor.from_pretrained('google/vit-base-patch16-224-in21k')
 
     def __getitem__(self, index):
         #row = self.label_file.iloc[int(2*len(self.label_file)/3)+index]
@@ -165,15 +173,18 @@ class HumeDatasetEval(Dataset):
     def process_images(self, index):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
-            img_files = sorted(os.listdir(img_folder_path))
+            img_files = sorted(os.listdir(img_folder_path), key=lambda x: x.zfill(15))
+            meta = next(imageio_ffmpeg.read_frames(f"{self.data_folder}raw/{str(int(index)).zfill(5)}.mp4"))
+            fps_est = len(img_files)/meta['duration']
             if 'Thumbs.db' in img_files:
                 img_files.remove('Thumbs.db')
-            #selected_indices = np.linspace(0, len(img_files) - 1, min(50, len(img_files)), dtype=int)
+            selected_indices = np.linspace(0, len(img_files) - 1, min(12*5, max(1, round(5/fps_est*len(img_files)))), dtype=int)
             images = []
-            for idx in range(len(img_files[:12*30])):#selected_indices:
+            for idx in selected_indices:  # range(len(img_files[:12*5])):
                 img_path = os.path.join(img_folder_path, img_files[idx])
-                img = Image.open(img_path).convert('RGB')#.resize((160, 160))
-                images.append(self.transform(image=np.array(img))['image'])
+                img = np.array(Image.open(img_path))#.convert('RGB')#.resize((160, 160))
+                #images.append(self.transform(image=np.array(img))['image'])
+                images.append(torch.tensor(img))
 
             # Add black images if there are less than 50 images
             while len(images) < 1:
@@ -186,7 +197,7 @@ class HumeDatasetEval(Dataset):
             while len(images) < 1: # TODO correct when faceimage are there
                 black_img = Image.new('RGB', (160, 160))
                 images.append(self.transform(image=np.array(black_img))['image'])
-            #print(f"No image found for index: {index}")
+            print(f"No image found for index: {index}")
             return torch.stack(images)
 
     def process_audio(self, filename):
@@ -214,6 +225,7 @@ class HumeDatasetEval(Dataset):
         audio_packed = pack_padded_sequence(audio_data_padded['input_values'][permutation], lengths.cpu().numpy(),
                                             batch_first=True)
         # assumption: audio lengths match vision lengths; it does not hold.
+        vision_data = [self.processor_vision(x, return_tensors='pt')['pixel_values'] for x in vision_data]
         vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
 
         labels_stacked = torch.stack([labels_data[x] for x in permutation])
