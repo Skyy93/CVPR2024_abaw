@@ -4,6 +4,7 @@ import math
 import shutil
 import sys
 import torch
+import pandas as pd
 from dataclasses import dataclass
 from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader
@@ -153,4 +154,10 @@ if __name__ == '__main__':
                         model=model,
                       eval_dataloader=eval_dataloader)
 
-    
+    preds_array = preds.numpy()
+
+    preds_df = pd.DataFrame(preds_array, columns=['Admiration', 'Amusement', 'Determination', 'Empathic Pain', 'Excitement', 'Joy'])
+    preds_df.insert(0, 'Filename', filenames)
+
+    preds_csv_path = 'preds.csv'
+    preds_df.to_csv(preds_csv_path, index=False)
