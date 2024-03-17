@@ -63,13 +63,13 @@ class TrainingConfiguration:
     gradient_accumulation: int = 1
 
     # Dataset
-    data_folder = "./data/"
+    data_folder = "./data/test_data/"
 
     # Savepath for model checkpoints
     model_path: str = "./hume_model"
 
     # Checkpoint to start from
-    checkpoint_start = None     #### USE CHECKPOINT HERE
+    checkpoint_start = "weights_e4_0.3862.pth"     #### USE CHECKPOINT HERE
 
     # set num_workers to 0 if on Windows
     num_workers: int = 0 if os.name == 'nt' else 4

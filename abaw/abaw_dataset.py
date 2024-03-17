@@ -48,9 +48,10 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         row = self.label_file.iloc[index]
 
         if self.vision_model == 'linear':
-            vit_file_path = f"{self.data_folder}vit/{str(int(row['Filename'])).zfill(5)}.pkl"
-            with open(vit_file_path, 'rb') as file:
-                vision = torch.mean(torch.tensor(pickle.load(file)), dim=0)
+            vision = torch.randn(1024)
+            #vit_file_path = f"{self.data_folder}vit/{str(int(row['Filename'])).zfill(5)}.pkl"
+            #with open(vit_file_path, 'rb') as file:
+            #    vision = torch.mean(torch.tensor(pickle.load(file)), dim=0)
         else:
             vision = self.process_images(index)
         
@@ -69,6 +70,8 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
             img_files = sorted(os.listdir(img_folder_path), key=lambda x: x.zfill(15))
+            images = []
+            """
             meta = next(imageio_ffmpeg.read_frames(f"{self.data_folder}raw/{str(int(index)).zfill(5)}.mp4"))
             fps_est = len(img_files)/meta['duration']
             if 'Thumbs.db' in img_files:
@@ -82,10 +85,11 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
                 images.append(torch.tensor(img))
             #self.update(1-len(images)/50)
             # Add black images if there are less than 50 images
+            """
             while len(images) < 1:
                 black_img = Image.new('RGB', (224, 224))
                 images.append(self.transform(image=np.array(black_img))['image'])
-
+                
             return torch.stack(images)
         except Exception as e:
             images = []
@@ -120,12 +124,12 @@ class HumeDatasetTrain(Dataset, abaw.utils.AverageMeter):
         lengths, permutation = audio_data_padded['attention_mask'].sum(axis=1).sort(descending=True)
         audio_packed = pack_padded_sequence(audio_data_padded['input_values'][permutation], lengths.cpu().numpy(), batch_first=True)  # 'input_features' for w2v2-bert
         # assumption: audio lengths match vision lengths; it does not hold.
-        vision_data = [self.processor_vision(x, return_tensors='pt')['pixel_values'] for x in vision_data]
-        vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
+        #vision_data = [self.processor_vision(x, return_tensors='pt')['pixel_values'] for x in vision_data]
+        #vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
     
         labels_stacked = torch.stack([labels_data[x] for x in permutation])
     
-        return audio_packed, vision_packed, labels_stacked, np.mean(avg)
+        return audio_packed, torch.stack(vision_data), labels_stacked, np.mean(avg)
 
 
 class HumeDatasetEval(Dataset):
@@ -153,9 +157,10 @@ class HumeDatasetEval(Dataset):
         row = self.label_file.iloc[index]
 
         if self.vision_model == 'linear':
-            vit_file_path = f"{self.data_folder}vit/{str(int(row['Filename'])).zfill(5)}.pkl"
-            with open(vit_file_path, 'rb') as file:
-                vision = torch.mean(torch.tensor(pickle.load(file)), dim=0)
+            vision = torch.randn(1024)
+            #vit_file_path = f"{self.data_folder}vit/{str(int(row['Filename'])).zfill(5)}.pkl"
+            #with open(vit_file_path, 'rb') as file:
+            #    vision = torch.mean(torch.tensor(pickle.load(file)), dim=0)
         else:
             vision = self.process_images(index)
 
@@ -174,6 +179,8 @@ class HumeDatasetEval(Dataset):
         try:
             img_folder_path = f"{self.data_folder}face_images/{str(int(index)).zfill(5)}/"
             img_files = sorted(os.listdir(img_folder_path), key=lambda x: x.zfill(15))
+            images = []
+            """
             meta = next(imageio_ffmpeg.read_frames(f"{self.data_folder}raw/{str(int(index)).zfill(5)}.mp4"))
             fps_est = len(img_files)/meta['duration']
             if 'Thumbs.db' in img_files:
@@ -185,7 +192,7 @@ class HumeDatasetEval(Dataset):
                 img = np.array(Image.open(img_path))#.convert('RGB')#.resize((160, 160))
                 #images.append(self.transform(image=np.array(img))['image'])
                 images.append(torch.tensor(img))
-
+            """
             # Add black images if there are less than 50 images
             while len(images) < 1:
                 black_img = Image.new('RGB', (160, 160))
@@ -210,6 +217,7 @@ class HumeDatasetEval(Dataset):
         except Exception as e:
             print(f"Error processing audio file {audio_file_path}: {e}")
             audio_data = np.zeros((128,), dtype=np.float32)
+            sr = 1
 
         return audio_data[:12*sr]
 
@@ -225,9 +233,9 @@ class HumeDatasetEval(Dataset):
         audio_packed = pack_padded_sequence(audio_data_padded['input_values'][permutation], lengths.cpu().numpy(),
                                             batch_first=True)
         # assumption: audio lengths match vision lengths; it does not hold.
-        vision_data = [self.processor_vision(x, return_tensors='pt')['pixel_values'] for x in vision_data]
-        vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
+        #vision_data = [self.processor_vision(x, return_tensors='pt')['pixel_values'] for x in vision_data]
+        #vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
 
         labels_stacked = torch.stack([labels_data[x] for x in permutation])
 
-        return audio_packed, vision_packed, labels_stacked, filenames
+        return audio_packed, torch.stack(vision_data), labels_stacked, filenames
