@@ -7,11 +7,11 @@ from torchmetrics.regression import PearsonCorrCoef
 
 def evaluate(config, model, eval_dataloader):
     with torch.no_grad():
-        preds, labels = predict(config, model, eval_dataloader)
+        preds, labels, filenames = predict(config, model, eval_dataloader)
         r = PearsonCorrCoef(num_outputs=6)
         r = r(preds, labels)
         r = r.mean()
-    return r.cpu().numpy(), preds 
+    return r.cpu().numpy(), preds, filenames
 
 
 def predict(train_config, model, dataloader):
@@ -27,9 +27,10 @@ def predict(train_config, model, dataloader):
     r = PearsonCorrCoef(num_outputs=6).cuda()
     preds = []
     labels = []
+    filenames = []
     with torch.no_grad():
 
-        for wav2vec, vit, label in bar:
+        for wav2vec, vit, label, filename in bar:
 
             with autocast():
 
@@ -41,6 +42,7 @@ def predict(train_config, model, dataloader):
             # save features in fp32 for sim calculation
             labels.append(label.detach().cpu())
             preds.append(pred.to(torch.float32).detach().cpu())
+            filenames.extend(filename)
             r.update(pred, label)
             bar.set_postfix(ordered_dict={'corr': f'{r.compute().mean().cpu().numpy():.4f}'})
         # keep Features on GPU
@@ -50,4 +52,4 @@ def predict(train_config, model, dataloader):
     if train_config.verbose:
         bar.close()
 
-    return preds, labels
+    return preds, labels, filenames

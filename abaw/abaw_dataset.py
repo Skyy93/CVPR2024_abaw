@@ -168,7 +168,7 @@ class HumeDatasetEval(Dataset):
         labels = torch.tensor(
             row[['Admiration', 'Amusement', 'Determination', 'Empathic Pain', 'Excitement', 'Joy']].values,
             dtype=torch.float)
-        return audio, vision, labels
+        return audio, vision, labels, int(row['Filename'])
 
     def process_images(self, index):
         try:

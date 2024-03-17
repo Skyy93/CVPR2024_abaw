@@ -149,7 +149,7 @@ if __name__ == '__main__':
 
     print("Val Length:", len(eval_dataset))
 
-    _, preds = evaluate(config=config,
+    _, preds, filenames = evaluate(config=config,
                         model=model,
                       eval_dataloader=eval_dataloader)
 

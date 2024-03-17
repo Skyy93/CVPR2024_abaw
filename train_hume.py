@@ -264,7 +264,7 @@ if __name__ == '__main__':
             model.eval()
             print("\n{}[{}]{}".format(30 * "-", "Evaluate", 30 * "-"))
 
-            p1, _ = evaluate(config=config,
+            p1, _, _ = evaluate(config=config,
                           model=model,
                           eval_dataloader=eval_dataloader)
 
