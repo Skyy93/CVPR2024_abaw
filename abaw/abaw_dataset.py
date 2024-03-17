@@ -218,7 +218,7 @@ class HumeDatasetEval(Dataset):
         #return int(len(self.label_file)/3)
 
     def collate_fn(self, batch):
-        audio_data, vision_data, labels_data = zip(*batch)
+        audio_data, vision_data, labels_data, filenames = zip(*batch)
         audio_data_padded = self.processor(audio_data, padding=True, sampling_rate=16000, return_tensors="pt",
                                            truncation=True, max_length=12 * 16000, return_attention_mask=True)
         lengths, permutation = audio_data_padded['attention_mask'].sum(axis=1).sort(descending=True)
@@ -230,4 +230,4 @@ class HumeDatasetEval(Dataset):
 
         labels_stacked = torch.stack([labels_data[x] for x in permutation])
 
-        return audio_packed, vision_packed, labels_stacked
+        return audio_packed, vision_packed, labels_stacked, filenames
