@@ -19,7 +19,7 @@ from transformers import get_constant_schedule_with_warmup, get_polynomial_decay
 import pickle
 
 
-##### Audio Standard with Sigmoid
+##### Audio standard with 30 eps
 
 
 @dataclass
@@ -36,8 +36,8 @@ class TrainingConfiguration:
     # Training 
     mixed_precision: bool = True
     seed = 1
-    epochs: int = 10
-    batch_size: int = 32  # keep in mind real_batch_size = 2 * batch_size
+    epochs: int = 30
+    batch_size: int = 40  # keep in mind real_batch_size = 2 * batch_size
     verbose: bool = True
     gpu_ids: tuple = (0,)  # GPU ids for training
 
@@ -277,6 +277,10 @@ if __name__ == '__main__':
                 else:
                     torch.save(model.state_dict(), '{}/weights_e{}_{:.4f}.pth'.format(model_path, epoch, p1))
             print("Epoch: {}, Eval Pearson = {:.3f},".format(epoch, p1))
+        if torch.cuda.device_count() > 1 and len(config.gpu_ids) > 1:
+            torch.save(model.module.state_dict(), '{}/weights_e{}_{:.4f}.pth'.format(model_path, epoch, p1))
+        else:
+            torch.save(model.state_dict(), '{}/weights_e{}_{:.4f}.pth'.format(model_path, epoch, p1))
 
     if torch.cuda.device_count() > 1 and len(config.gpu_ids) > 1:
         torch.save(model.module.state_dict(), '{}/weights_end.pth'.format(model_path))

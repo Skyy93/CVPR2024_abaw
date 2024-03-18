@@ -30,7 +30,8 @@ class Model(nn.Module):
             self.fusion_model = nn.Sequential(nn.Linear(2*1027, 2*1027),
                                               nn.Tanh(),
                                               nn.Linear(2*1027, 6),
-                                              nn.Sigmoid())
+                                              #nn.Sigmoid()
+                                              )
             self.lstm_audio = nn.LSTM(1027, 1027, num_layers=2, batch_first=True, bidirectional=False)
             #self.lstm_vision = nn.LSTM(775, 775, num_layers=2, batch_first=True, bidirectional=False)
 
