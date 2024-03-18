@@ -37,7 +37,7 @@ class TrainingConfiguration:
     mixed_precision: bool = True
     seed = 1
     epochs: int = 30
-    batch_size: int = 40  # keep in mind real_batch_size = 2 * batch_size
+    batch_size: int = 32  # keep in mind real_batch_size = 2 * batch_size
     verbose: bool = True
     gpu_ids: tuple = (0,)  # GPU ids for training
 
