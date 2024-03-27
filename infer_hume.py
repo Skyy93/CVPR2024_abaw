@@ -18,7 +18,7 @@ from abaw.model import Model
 from transformers import get_constant_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup, \
     get_cosine_schedule_with_warmup
 import pickle
-
+import numpy as np
 
 ##### VISION new STANDARD 1e-4
 
@@ -63,13 +63,13 @@ class TrainingConfiguration:
     gradient_accumulation: int = 1
 
     # Dataset
-    data_folder = "./data/test_data/"
+    data_folder = "./data/"
 
     # Savepath for model checkpoints
     model_path: str = "./hume_model"
 
     # Checkpoint to start from
-    checkpoint_start = "weights_e4_0.3862.pth"     #### USE CHECKPOINT HERE
+    checkpoint_start = "weights_e9_0.6910.pth"#"weights_e9_0.6910.pth"     #### USE CHECKPOINT HERE
 
     # set num_workers to 0 if on Windows
     num_workers: int = 0 if os.name == 'nt' else 4
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------#
 
     eval_dataset = HumeDatasetEval(data_folder=config.data_folder,
-                                   label_file='data/test_split.csv',
+                                   label_file='data/valid_split.csv',
                                    #label_file='data/train_split.csv',
                                    model=config.model,
                                    )
@@ -155,9 +155,9 @@ if __name__ == '__main__':
                       eval_dataloader=eval_dataloader)
 
     preds_array = preds.numpy()
-
-    preds_df = pd.DataFrame(preds_array, columns=['Admiration', 'Amusement', 'Determination', 'Empathic Pain', 'Excitement', 'Joy'])
-    preds_df.insert(0, 'Filename', filenames)
-
+    preds_array = np.hstack([np.array(filenames).reshape(len(filenames), 1) , preds_array])
+    preds_df = pd.DataFrame(preds_array, columns=['Filename', 'Admiration', 'Amusement', 'Determination', 'Empathic Pain', 'Excitement', 'Joy'])
+    preds_df = preds_df.sort_values(by='Filename')
+    preds_df['Filename'] = preds_df['Filename'].astype(int)
     preds_csv_path = 'preds.csv'
     preds_df.to_csv(preds_csv_path, index=False)

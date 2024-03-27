@@ -237,5 +237,5 @@ class HumeDatasetEval(Dataset):
         #vision_packed = pack_sequence([vision_data[x] for x in permutation], enforce_sorted=False)
 
         labels_stacked = torch.stack([labels_data[x] for x in permutation])
-
-        return audio_packed, torch.stack(vision_data), labels_stacked, filenames
+        filenames_sorted = [filenames[x] for x in permutation]
+        return audio_packed, torch.stack(vision_data), labels_stacked, filenames_sorted
